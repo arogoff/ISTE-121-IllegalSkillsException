@@ -19,7 +19,7 @@ import java.util.*;
  * @version 4/9/2021
  */
 
-public class TFTPServer extends Application implements EventHandler<ActionEvent> {
+public class TFTPServer extends Application implements EventHandler<ActionEvent>, TFTPConstants {
    // Window attributes
    private Stage stage;
    private Scene scene;
@@ -77,6 +77,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       fpLog.getChildren().addAll(lblLog, taLog, btnChooseFolder, dir);
       root.getChildren().add(fpLog);
       
+      btnStartStop.setOnAction(this);
+      btnChooseFolder.setOnAction(this);
+      
       // Show window
       scene = new Scene(root, 525, 250);
       stage.setScene(scene);
@@ -87,6 +90,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    public void handle(ActionEvent evt) {
       String label = ((Button)evt.getSource()).getText();
       switch(label) {
+         case "Choose Folder":
+            doChooseFolder();
+            break;
          case "Start":
             doStart();
             break;
@@ -95,6 +101,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             break;
       }
    } 
+   
+   public void doChooseFolder(){
+   
+   }
    
    public void doStart() {
       UDPServerThread t1 = new UDPServerThread();
@@ -202,6 +212,14 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       
          // log("Client disconnected!\n");
          log("Client completed!\n");
+      }
+      
+      public void doWRQ(){
+      
+      }
+      
+      public void doRRQ(){
+      
       }
    } // End of inner class
 
