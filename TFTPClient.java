@@ -19,7 +19,7 @@ import java.io.*;
  * @version 4/9/2021
  */
 
-public class TFTPClient extends Application implements EventHandler<ActionEvent> {
+public class TFTPClient extends Application implements EventHandler<ActionEvent>, TFTPConstants {
    // Window attributes
    private Stage stage;
    private Scene scene;
@@ -96,6 +96,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       
       // Listen for the buttons
       btnChooseFolder.setOnAction(this);
+      btnUpload.setOnAction(this);
+      btnDownload.setOnAction(this);
    
       scene = new Scene(root, 475, 300);
       stage.setScene(scene);
@@ -117,6 +119,30 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
     * Button dispatcher
     */
    public void handle(ActionEvent ae) {
+      String label = ((Button)ae.getSource()).getText();
+      
+      switch(label) {
+         case "Choose Folder":
+            doChooseFolder();
+            break;
+         case "Upload":
+            doUpload();
+            break;
+         case "Download":
+            doDownload();
+            break;
+      }
+   }
+   
+   public void doChooseFolder(){
+   
+   }
+   
+   public void doUpload(){
+   
+   }
+   
+   public void doDownload(){
    
    }
 
