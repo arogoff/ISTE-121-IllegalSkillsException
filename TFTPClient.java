@@ -15,7 +15,7 @@ import java.io.*;
 /**
  * TFTPClient - Sends 
  * No Connect/Disconnect button - connectionless.
- * @author  Garrett Maury, Josh R, Alex R
+ * @author  Garrett Maury, Josh R, Alex R (RIP JOSH)
  * @version 4/9/2021
  */
 
@@ -113,7 +113,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          alert.showAndWait();
          System.exit(1);
       }
-   }
+   } //start
 
    /** 
     * Button dispatcher
@@ -134,16 +134,31 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }
    }
    
-   public void doChooseFolder(){
+   /** 
+   * doChooseFolder()
+   * uses FileChooser
+   * updates tfSentence with the new directory that the user chose
+   */
+   public void doChooseFolder() {
    
    }
    
-   public void doUpload(){
+   /** 
+   * doUpload()
+   * uses FileChooser
+   * uploads a file to the server using the TFTP protocol
+   */
+   public void doUpload() {
    
    }
    
-   public void doDownload(){
+   /** 
+   * doDownload()
+   * uses FileChooser
+   * downloads a file from the server using the TFTP protocol
+   */
+   public void doDownload() {
    
    }
 
-}
+} //TFTPClient
