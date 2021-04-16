@@ -15,7 +15,7 @@ import java.util.*;
 /**
  * TFTPServer - Multi-Threaded UDP server with start/stop button to control
  * server connections.
- * @author  Garrett Maury, Josh R, Alex R
+ * @author  Garrett Maury, Josh R, Alex R (RIP JOSH)
  * @version 4/9/2021
  */
 
@@ -102,21 +102,34 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       }
    } 
    
-   public void doChooseFolder(){
+   /** 
+   * doChooseFolder()
+   * Uses FileChooser
+   * changes the TextField directory to whatever the uses chooses it to be
+   */
+   public void doChooseFolder() {
    
    }
    
+   // Start method for the server threads
    public void doStart() {
       UDPServerThread t1 = new UDPServerThread();
       //serverThread.start();
       btnStartStop.setText("Stop");
    }
    
+   //Stop method
    public void doStop() {
       //UDPserverThread.stopServer();
       btnStartStop.setText("Start");
    }
    
+   /** 
+   * UDPServerThread
+   * extends Thread
+   * INNER CLASS
+   * contains run(), which connects using the sockets and creates a thread for the client
+   */
    class UDPServerThread extends Thread {
       public void run() {
          // Server stuff ... wait for a connection and process it
@@ -127,7 +140,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             // GUI class that extends Application.
             // mainSocket is a DatagramSocket declared in the global scope
             // and initialized to null
-            //mainSocket = new DatagramSocket(SERVER_PORT); // Binds the socket to the port
+            // mainSocket = new DatagramSocket(SERVER_PORT); // Binds the socket to the port
          //}
          /*catch(IOException ioe) {
             log("IO Exception (1): " + ioe + "\n");
@@ -140,9 +153,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             // Socket for the client
             // Socket cSocket = null;
             // The socket for the client is created in the client thread
-            //byte[] holder = new byte[MAX_PACKET];
+            // byte[] holder = new byte[MAX_PACKET];
             // packet for 1st packet from a client
-            //DatagramPacket pkt = new DatagramPacket(holder, MAX_PACKET);
+            // DatagramPacket pkt = new DatagramPacket(holder, MAX_PACKET);
             //try {
                // Wait for a connection and set up IO
                // cSocket = sSocket.accept();
@@ -155,16 +168,23 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                return;
             }*/
             // Create a thread for the client
-            //UDPClientThread ct = new UDPClientThread(cSocket);
+            // UDPClientThread ct = new UDPClientThread(cSocket);
             // Instead of passing a Socket to the client thread, we pass the 1st packet
-            //UDPClientThread ct = new UDPClientThread(pkt);
-            //ct.start();
+            // UDPClientThread ct = new UDPClientThread(pkt);
+            // ct.start();
          
          } // of while loop
       } // of run   
    }  
 
-
+   
+   /** 
+   * UDPClientThread
+   * extends Thread
+   * INNER CLASS
+   * contains a constructor which contains @param _pkt which achieves port switching
+   * contains run(), creates a conversation with the client and uses the TFTP protocol
+   */
    class UDPClientThread extends Thread {
       // Since attributes are per-object items, each ClientThread has its OWN
       // socket, unique to that client
@@ -179,7 +199,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          // So - the new DatagramSocket is on a DIFFERENT port,
          // chosen by the OS. If we use cSocket from now on, then
          // port switching has been achieved.
-         //cSocket = new DatagramSocket();
+         // cSocket = new DatagramSocket();
       }
    
       // main program for a ClientThread
@@ -198,27 +218,37 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          }*/
       
          // As the conversation progresses, to receive a packet:
-         //byte[] holder = new holder[MAX_PACKET];
-         //DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-         //cSocket.receive(incoming);
+         // byte[] holder = new holder[MAX_PACKET];
+         // DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+         // cSocket.receive(incoming);
          // Then - dissect the incoming packet and process it
          // THE NEXT SET OF NOTES DISCUSSES HOW TO DISSECT PACKETS
       
          // To send a packet:
          // Compute the contents of the outgoing packet
          // Build the packet ... producing a DatagramPacket, outgoing
-         //cSocket.send(outgoing);
+         // cSocket.send(outgoing);
          // THE NEXT SET OF NOTES ALSO DISCUSSES HOW TO BUILD PACKETS
       
          // log("Client disconnected!\n");
          log("Client completed!\n");
       }
       
-      public void doWRQ(){
+      /** 
+      * doWRQ()
+      * TFTP Write Request
+      * when given a write request from a client, uses TFTP protocol
+      */
+      public void doWRQ() {
       
       }
       
-      public void doRRQ(){
+      /** 
+      * doRRQ()
+      * TFTP Read Request
+      * when given a read request from a client, uses TFTP protocol
+      */
+      public void doRRQ() {
       
       }
    } // End of inner class
@@ -232,4 +262,5 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             }
          });
    } // of log
-}
+   
+} //class TFTPServer
