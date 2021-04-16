@@ -1,24 +1,46 @@
 import java.net.*;
 import java.io.*;
 
-public abstract class Packets implements TFTPConstants{
+/**
+ * Packets - to build/dissect the needed packets 
+ * No Connect/Disconnect button - connectionless.
+ * @author  Garrett Maury, Josh R, Alex R (RIP JOSH)
+ * @version 4/15/2021
+ */
+
+public abstract class Packets implements TFTPConstants {
    
+   // Abstract methods so classes can extend and use the methods
    public abstract DatagramPacket build();
    
    public abstract void dissect(DatagramPacket type);
    
 }
 
-class RRQPacket extends Packets{
+/** 
+* RRQPacket
+* extends Packets
+* OUTER CLASS
+* contains a parameterized constructor that allows building and dissecting of the RRQPacket
+*/
+class RRQPacket extends Packets {
+   // Attributes
    private InetAddress toAddress;
    private int port;
    private String fileName, mode;
-
-   public RRQPacket(InetAddress toAddress, int port, String fileName, String mode){
-      this.toAddress = toAddress;
-      this.port = port;
-      this.fileName = fileName;
-      this.mode = mode;
+   
+   /** 
+    * Parameterized constructor for RRQPacket 
+    * @param _toAddress IP Address
+    * @param _port the port used
+    * @param _fileName the name of the file
+    * @param _mode contains information about data transfer mode
+    */
+   public RRQPacket(InetAddress _toAddress, int _port, String _fileName, String _mode) {
+      toAddress = _toAddress;
+      port = _port;
+      fileName = _fileName;
+      mode = _mode;
    }
    
    /** build() method
@@ -26,8 +48,8 @@ class RRQPacket extends Packets{
     * Builds the RRQ packet with the given information
     * @return DatagramPacket Returns the newly created RRQ packet
     */
-   public DatagramPacket build(){
-      try{
+   public DatagramPacket build() {
+      try {
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2 + fileName.length() + 1 + "octet".length() + 1);
          DataOutputStream dos = new DataOutputStream(baos);
       
@@ -46,17 +68,21 @@ class RRQPacket extends Packets{
          DatagramPacket rrqPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
       
          return rrqPkt;
-      }catch(Exception e){
+      } //try
+      
+      catch(Exception e){
          return null;
-      }
-   }
+      } //catch
+      
+   } //build()
    
    /** dissect() method
     *
     * Dissects the RRQ packet, taking all of the information out of the packet.
     * @param rrqPkt Of type DatagramPacket, this packet of information will be broken up
+    * @return if opcode does not equal RRQ variable, return.
     */
-   public void dissect(DatagramPacket rrqPkt){
+   public void dissect(DatagramPacket rrqPkt) {
       try{
          toAddress = rrqPkt.getAddress();
          port = rrqPkt.getPort();
@@ -78,13 +104,19 @@ class RRQPacket extends Packets{
          mode = readBytes(dis);
          
          dis.close();
-      }catch(Exception e){
+      } //try
+      catch(Exception e){
       
-      }
-   }
+      } //catch
+   } //dissect()
    
-   //Utility method
-   public static String readBytes(DataInputStream dis){
+  /** 
+   * readBytes()
+   * @param DataInputStream dis
+   * Reads the bytes in the DataInputStream sent to the method
+   * @return if the amount of bytes read = 0, return the string value.
+   */
+   public static String readBytes(DataInputStream dis) {
       try{
          String value = "";
          
@@ -97,21 +129,36 @@ class RRQPacket extends Packets{
       }catch(Exception e){}
      
       return null;
-   }
+   } //readBytes
    
-}
+} //class RRQPacket
 
 
-class WRQPacket extends Packets{
+
+/** 
+* WRQPacket
+* extends Packets
+* OUTER CLASS
+* contains a parameterized constructor that allows building and dissecting of the WRQPacket
+*/
+class WRQPacket extends Packets {
+   // Attributes
    private InetAddress toAddress;
    private int port;
    private String fileName, mode;
-
-   public WRQPacket(InetAddress toAddress, int port, String fileName, String mode){
-      this.toAddress = toAddress;
-      this.port = port;
-      this.fileName = fileName;
-      this.mode = mode;
+   
+   /** 
+    * Parameterized constructor for WRQPacket 
+    * @param _toAddress IP Address
+    * @param _port the port used
+    * @param _fileName the name of the file
+    * @param _mode contains information about data transfer mode
+    */
+   public WRQPacket(InetAddress _toAddress, int _port, String _fileName, String _mode) {
+      toAddress = _toAddress;
+      port = _port;
+      fileName = _fileName;
+      mode = _mode;
    }
    
    /** build() method
@@ -119,7 +166,7 @@ class WRQPacket extends Packets{
     * Builds the WRQ packet with the given information
     * @return DatagramPacket Returns the newly created WRQ packet
     */
-   public DatagramPacket build(){
+   public DatagramPacket build() {
       //(InetAddress toAddress, int port, String fileName, String mode)
       try{
          ByteArrayOutputStream baos = new ByteArrayOutputStream(1 + fileName.length() + 1 + "octet".length() + 1);
@@ -150,65 +197,146 @@ class WRQPacket extends Packets{
     * Dissects the WRQ packet, taking all of the information out of the packet.
     * @param wrqPkt Of type DatagramPacket, this packet of information will be broken up
     */
-   public void dissect(DatagramPacket wrqPkt){
+   public void dissect(DatagramPacket wrqPkt) {
       
    }
-}
+   
+} //class WRQPacket
 
-class DATAPacket extends Packets{
+
+
+/** 
+* DATAPacket
+* extends Packets
+* OUTER CLASS
+* contains a parameterized constructor that allows building and dissecting of the DATAPacket
+*/
+class DATAPacket extends Packets {
+   // Attributes
    private InetAddress toAddress;
    private int port, blockNo, dataLen;
    private byte[] data;
    
-   public DATAPacket(InetAddress toAddress, int port, int blockNo, byte[] data, int dataLen){
-      this.toAddress = toAddress;
-      this.port = port;
-      this.blockNo = blockNo;
-      this.data = data;
-      this.dataLen = dataLen;
+   /** 
+    * Parameterized constructor for DATAPacket 
+    * @param _toAddress IP Address
+    * @param _port the port used
+    * @param _blockNo the block number
+    * @param _data the actual data
+    * @param _dataLen the integer length of the data
+    */
+   public DATAPacket(InetAddress _toAddress, int _port, int _blockNo, byte[] _data, int _dataLen) {
+      toAddress = _toAddress;
+      port = _port;
+      blockNo = _blockNo;
+      data = _data;
+      dataLen = _dataLen;
    }
-
-   public DatagramPacket build(){
+   
+   /** build() method
+    *
+    * Builds the DATAPacket with the given information
+    * @return DatagramPacket Returns the newly created DATAPacket
+    */
+   public DatagramPacket build() {
       return null;
    }
    
-   public void dissect(DatagramPacket dataPkt){
+   /** dissect() method
+    *
+    * Dissects the DATAPacket, taking all of the information out of the packet.
+    * @param dataPkt Of type DatagramPacket, this packet of information will be broken up
+    */
+   public void dissect(DatagramPacket dataPkt) {
    }
-}
+   
+} //class DATAPacket
 
-class ACKPacket extends Packets{
+
+
+/** 
+* ACKPacket
+* extends Packets
+* OUTER CLASS
+* contains a parameterized constructor that allows building and dissecting of the ACKPacket
+*/
+class ACKPacket extends Packets {
+   // Attributes
    private InetAddress toAddress;
    private int port, blockNo;
    
-   public ACKPacket(InetAddress toAddress, int port, int blockNo){
-      this.toAddress = toAddress;
-      this.port = port;
-      this.blockNo = blockNo;
+   /** 
+    * parameterized constructor for ACKPacket 
+    * @param _toAddress IP Address
+    * @param _port the port used
+    * @param _blockNo the block number
+    */
+   public ACKPacket(InetAddress _toAddress, int _port, int _blockNo) {
+      toAddress = _toAddress;
+      port = _port;
+      blockNo = _blockNo;
    }
-
-   public DatagramPacket build(){
+   
+   /** build() method
+    *
+    * Builds the ACKPacket with the given information
+    * @return DatagramPacket Returns the newly created ACKPacket
+    */
+   public DatagramPacket build() {
       return null;
    }
    
-   public void dissect(DatagramPacket ackPkt){
+   /** dissect() method
+    *
+    * Dissects the ACKPacket, taking all of the information out of the packet.
+    * @param ackPkt Of type DatagramPacket, this packet of information will be broken up
+    */
+   public void dissect(DatagramPacket ackPkt) {
    }
-}
+   
+} //class ACKPacket
 
-class ERRORPacket extends Packets{
+
+
+/** 
+* ERRORPacket
+* extends Packets
+* OUTER CLASS
+* contains a parameterized constructor that allows building and dissecting of the ERRORPacket
+*/
+class ERRORPacket extends Packets {
    private InetAddress toAddress;
    private int port, errorNo;
    private String errorMsg;
-
-   public ERRORPacket(InetAddress toAddress, int port, int errorNo, String errorMsg){
-      this.toAddress = toAddress;
-      this.port = port;
-      this.errorNo = errorNo;
-      this.errorMsg = errorMsg;
+   
+   /** 
+    * parameterized constructor for ACKPacket 
+    * @param _toAddress IP Address
+    * @param _port the port used
+    * @param _errorNo the error number
+    * @param _errorMsg the message given when there's an error
+    */
+   public ERRORPacket(InetAddress _toAddress, int _port, int _errorNo, String _errorMsg) {
+      toAddress = _toAddress;
+      port = _port;
+      errorNo = _errorNo;
+      errorMsg = _errorMsg;
    }
-   public DatagramPacket build(){
+   
+   /** build() method
+    *
+    * Builds the ERRORPacket with the given information
+    * @return DatagramPacket Returns the newly created ERRORPacket
+    */
+   public DatagramPacket build() {
       return null;
    }
    
-   public void dissect(DatagramPacket errorPkt){
+   /** dissect() method
+    *
+    * Dissects the ERRORPacket, taking all of the information out of the packet.
+    * @param errorPkt Of type DatagramPacket, this packet of information will be broken up
+    */
+   public void dissect(DatagramPacket errorPkt) {
    }
-}
+} //class ERRORPacket
