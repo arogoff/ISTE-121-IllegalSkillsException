@@ -1,7 +1,17 @@
-public interface TFTPConstants{
-   public static final int TFTP_PORT = 69;
+/**
+ * TFTPConstants - Interface 
+ * An interface of opcode and error code constants
+ * @author  Garrett Maury, Josh R, Alex R (RIP JOSH)
+ * @version 4/15/2021
+ */
+
+public interface TFTPConstants {
+
+   // IMPLEMENTED BY PACKETS, TFTPCLIENT, and TFTPSERVER
    
-   public static final int MAX_PACKET = 1500;
+   public static final int TFTP_PORT = 69;    //TFTPServer Port
+   
+   public static final int MAX_PACKET = 1500; //max size of packet
    
    // OPCODES
    public static final int RRQ = 1;
