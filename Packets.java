@@ -113,12 +113,45 @@ class WRQPacket extends Packets{
       this.fileName = fileName;
       this.mode = mode;
    }
-
+   
+   /** build() method
+    *
+    * Builds the WRQ packet with the given information
+    * @return DatagramPacket Returns the newly created WRQ packet
+    */
    public DatagramPacket build(){
-      return null;
+      //(InetAddress toAddress, int port, String fileName, String mode)
+      try{
+         ByteArrayOutputStream baos = new ByteArrayOutputStream(1 + fileName.length() + 1 + "octet".length() + 1);
+         DataOutputStream dos = new DataOutputStream(baos);
+      
+         dos.writeShort(RRQ); // opcode
+         dos.writeBytes(fileName);
+         dos.writeByte(0);
+         dos.writeBytes("octet");
+         dos.writeByte(0);
+      
+         // Close the DataOutputStream to flush the last of the packet out
+         // to the ByteArrayOutputStream
+         dos.close();
+      
+      
+         byte[] holder = baos.toByteArray(); // Get the underlying byte[]
+         DatagramPacket wrqPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
+      
+         return wrqPkt;
+      }catch(Exception e){
+         return null;
+      }
    }
    
+   /** dissect() method
+    *
+    * Dissects the WRQ packet, taking all of the information out of the packet.
+    * @param wrqPkt Of type DatagramPacket, this packet of information will be broken up
+    */
    public void dissect(DatagramPacket wrqPkt){
+      
    }
 }
 
