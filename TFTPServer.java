@@ -104,11 +104,19 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    
    /** 
    * doChooseFolder()
-   * Uses FileChooser
+   * Uses DirectoryChooser
    * changes the TextField directory to whatever the uses chooses it to be
    */
    public void doChooseFolder() {
-   
+    // Directory Chooser setup
+      DirectoryChooser directoryChooser = new DirectoryChooser();
+      File selectedDirectory = directoryChooser.showDialog(stage);
+            
+      if(selectedDirectory == null){
+                  //No Directory selected
+      }else{
+         dir.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
+      }
    }
    
    // Start method for the server threads
