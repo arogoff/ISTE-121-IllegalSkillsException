@@ -42,9 +42,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    // IO attributes
    private DatagramSocket socket = null;
    private InetAddress serverIP = null;
-   
-   // OTHER attributes
-   public static final int SERVER_PORT = 32001;
 
    /**
     * main program 
