@@ -172,7 +172,7 @@ class WRQPacket extends Packets {
          ByteArrayOutputStream baos = new ByteArrayOutputStream(1 + fileName.length() + 1 + "octet".length() + 1);
          DataOutputStream dos = new DataOutputStream(baos);
       
-         dos.writeShort(RRQ); // opcode
+         dos.writeShort(WRQ); // opcode
          dos.writeBytes(fileName);
          dos.writeByte(0);
          dos.writeBytes("octet");
