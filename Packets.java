@@ -131,6 +131,15 @@ class RRQPacket extends Packets {
       } //catch
    } //dissect()
    
+   /** getFileName() method
+    *
+    * Get the name of the file for this packet
+    * @return get the fileName from the Packet
+    */
+   public String getFileName() {
+      return fileName;
+   }
+   
 } //class RRQPacket
 
 
@@ -317,6 +326,22 @@ class ACKPacket extends Packets {
     * @param ackPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket ackPkt) {
+   }
+   
+   /** getOpCode() method
+    *
+    * @return returns ACK: 4
+    */
+   public int getOpCode() {
+      return ACK;
+   }
+   
+   /** getBlockNo() method
+    *
+    * @return returns block number
+    */
+   public int getBlockNo() {
+      return blockNo;
    }
    
 } //class ACKPacket
