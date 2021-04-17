@@ -15,6 +15,27 @@ public abstract class Packets implements TFTPConstants {
    
    public abstract void dissect(DatagramPacket type);
    
+   /** 
+   * readBytes()
+   * @param DataInputStream dis
+   * Reads the bytes in the DataInputStream sent to the method
+   * @return if the amount of bytes read = 0, return the string value.
+   */
+   public static String readBytes(DataInputStream dis) {
+      try{
+         String value = "";
+         
+         while(true){
+            byte b = dis.readByte();
+            if(b == 0)
+               return value;
+            value += (char) b;
+         }
+      }catch(Exception e){}
+     
+      return null;
+   } //readBytes
+   
 }
 
 /** 
@@ -110,27 +131,6 @@ class RRQPacket extends Packets {
       } //catch
    } //dissect()
    
-  /** 
-   * readBytes()
-   * @param DataInputStream dis
-   * Reads the bytes in the DataInputStream sent to the method
-   * @return if the amount of bytes read = 0, return the string value.
-   */
-   public static String readBytes(DataInputStream dis) {
-      try{
-         String value = "";
-         
-         while(true){
-            byte b = dis.readByte();
-            if(b == 0)
-               return value;
-            value += (char) b;
-         }
-      }catch(Exception e){}
-     
-      return null;
-   } //readBytes
-   
 } //class RRQPacket
 
 
@@ -198,7 +198,32 @@ class WRQPacket extends Packets {
     * @param wrqPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket wrqPkt) {
+      try{
+         toAddress = wrqPkt.getAddress();
+         port = wrqPkt.getPort();
+         
+         // Create a ByteArrayInputStream from the payload
+         // NOTE: give the packet data, offset, and length to the ByteArrayInputStream
+         ByteArrayInputStream bais = new ByteArrayInputStream(wrqPkt.getData(), wrqPkt.getOffset(), wrqPkt.getLength());
+         DataInputStream dis = new DataInputStream(bais);
+         int opcode = dis.readShort();
+         if(opcode != WRQ){
+            fileName = "";
+            mode = "";
+            
+            dis.close();
+            return;
+         }
+         
+         fileName = readBytes(dis);
+         mode = readBytes(dis);
+         
+         dis.close();
+      } //try
+      catch(Exception e){
       
+      } //catch
+   
    }
    
 } //class WRQPacket
