@@ -136,7 +136,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    
    /** 
    * doChooseFolder()
-   * uses FileChooser
+   * uses DirectoryChooser
    * updates tfSentence with the new directory that the user chose
    */
    public void doChooseFolder() {
