@@ -140,7 +140,16 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * updates tfSentence with the new directory that the user chose
    */
    public void doChooseFolder() {
-   
+         // Directory Chooser setup
+      DirectoryChooser directoryChooser = new DirectoryChooser();
+      File selectedDirectory = directoryChooser.showDialog(stage);
+            
+      if(selectedDirectory == null){
+                  //No Directory selected
+      }else{
+         tfSentence.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
+      }
+         
    }
    
    /** 
