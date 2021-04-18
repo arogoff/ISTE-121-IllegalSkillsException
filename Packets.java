@@ -53,6 +53,11 @@ class RRQPacket extends Packets {
    private String fileName, mode;
    
    /** 
+    * Default/empty constructor for RRQPacket 
+    */
+   public RRQPacket(){}
+   
+   /** 
     * Parameterized constructor for RRQPacket 
     * @param _toAddress IP Address
     * @param _port the port used
@@ -167,6 +172,11 @@ class WRQPacket extends Packets {
    private String fileName, mode;
    
    /** 
+    * Default/empty constructor for WRQPacket 
+    */
+   public WRQPacket(){}
+   
+   /** 
     * Parameterized constructor for WRQPacket 
     * @param _toAddress IP Address
     * @param _port the port used
@@ -268,6 +278,11 @@ class DATAPacket extends Packets {
    private InetAddress toAddress;
    private int port, blockNo, dataLen;
    private byte[] data;
+   
+   /** 
+    * Default/empty constructor for DATAPacket 
+    */
+   public DATAPacket(){}
    
    /** 
     * Parameterized constructor for DATAPacket 
@@ -375,6 +390,11 @@ class ACKPacket extends Packets {
    private int port, blockNo;
    
    /** 
+    * Default/empty constructor for ACKPacket 
+    */
+   public ACKPacket(){}
+   
+   /** 
     * parameterized constructor for ACKPacket 
     * @param _toAddress IP Address
     * @param _port the port used
@@ -474,6 +494,11 @@ class ERRORPacket extends Packets {
    private InetAddress toAddress;
    private int port, errorNo;
    private String errorMsg;
+   
+   /** 
+    * Default/empty constructor for ERRORPacket 
+    */
+   public ERRORPacket(){}
    
    /** 
     * parameterized constructor for ACKPacket 
