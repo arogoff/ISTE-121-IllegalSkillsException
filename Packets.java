@@ -352,6 +352,29 @@ class ACKPacket extends Packets {
     * @param ackPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket ackPkt) {
+   try{
+         toAddress = ackPkt.getAddress();
+         port = ackPkt.getPort();
+         
+         // Create a ByteArrayInputStream from the payload
+         // NOTE: give the packet data, offset, and length to the ByteArrayInputStream
+         ByteArrayInputStream bais = new ByteArrayInputStream(ackPkt.getData(), ackPkt.getOffset(), ackPkt.getLength());
+         DataInputStream dis = new DataInputStream(bais);
+         int opcode = dis.readShort();
+         if(opcode != ACK){
+            blockNo = 0;
+            
+            dis.close();
+            return;
+         }
+         
+         blockNo = readBytes(dis);
+         
+         dis.close();
+      } //try
+      catch(Exception e){
+      
+      } //catch
    }
    
    /** getOpCode() method
