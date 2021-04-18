@@ -281,7 +281,28 @@ class DATAPacket extends Packets {
     * @return DatagramPacket Returns the newly created DATAPacket
     */
    public DatagramPacket build() {
-      return null;
+      try{
+         ByteArrayOutputStream baos = new ByteArrayOutputStream(2 + dataLen + 2); // 4-516 bytes. Opcode = 2, Blk# = 2, datalength for the rest of the size
+         DataOutputStream dos = new DataOutputStream(baos);
+      
+         dos.writeShort(DATA); // opcode
+         dos.writeShort(blockNo);
+         for(int i = 0; i < dataLen; i++){
+            dos.writeByte(data[i]);
+         }
+      
+         // Close the DataOutputStream to flush the last of the packet out
+         // to the ByteArrayOutputStream
+         dos.close();
+      
+      
+         byte[] holder = baos.toByteArray(); // Get the underlying byte[]
+         DatagramPacket dataPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
+      
+         return dataPkt;
+      }catch(Exception e){
+         return null;
+      }
    }
    
    /** dissect() method
@@ -330,7 +351,7 @@ class ACKPacket extends Packets {
          DataOutputStream dos = new DataOutputStream(baos);
       
          dos.writeShort(ACK); // opcode
-         dos.writeBytes(blockNo);
+         dos.writeShort(blockNo);
       
          // Close the DataOutputStream to flush the last of the packet out
          // to the ByteArrayOutputStream
@@ -352,7 +373,7 @@ class ACKPacket extends Packets {
     * @param ackPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket ackPkt) {
-   try{
+      try{
          toAddress = ackPkt.getAddress();
          port = ackPkt.getPort();
          
@@ -368,7 +389,7 @@ class ACKPacket extends Packets {
             return;
          }
          
-         blockNo = readBytes(dis);
+         blockNo = dis.readShort();
          
          dis.close();
       } //try
