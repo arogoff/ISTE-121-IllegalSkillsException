@@ -13,6 +13,8 @@ public abstract class Packets implements TFTPConstants {
    // Abstract methods so classes can extend and use the methods
    public abstract DatagramPacket build();
    
+   public abstract int getOpCode();
+   
    public abstract void dissect(DatagramPacket type);
    
    /** 
@@ -241,6 +243,14 @@ class WRQPacket extends Packets {
       
       } //catch
    
+   }// dissect
+   
+   /** getOpCode() method
+    *
+    * @return returns ACK: 4
+    */
+   public int getOpCode() {
+      return WRQ;
    }
    
 } //class WRQPacket
@@ -320,7 +330,7 @@ class DATAPacket extends Packets {
          ByteArrayInputStream bais = new ByteArrayInputStream(dataPkt.getData(), dataPkt.getOffset(), dataPkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
          int opcode = dis.readShort();
-         if(opcode != ACK){
+         if(opcode != DATA){
             blockNo = 0;
             
             dis.close();
@@ -339,6 +349,14 @@ class DATAPacket extends Packets {
       catch(Exception e){
       
       } //catch
+   } // dissect
+   
+   /** getOpCode() method
+    *
+    * @return returns ACK: 4
+    */
+   public int getOpCode() {
+      return DATA;
    }
    
 } //class DATAPacket
@@ -507,5 +525,39 @@ class ERRORPacket extends Packets {
     * @param errorPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket errorPkt) {
+      try{
+         toAddress = errorPkt.getAddress();
+         port = errorPkt.getPort();
+         
+         // Create a ByteArrayInputStream from the payload
+         // NOTE: give the packet data, offset, and length to the ByteArrayInputStream
+         ByteArrayInputStream bais = new ByteArrayInputStream(errorPkt.getData(), errorPkt.getOffset(), errorPkt.getLength());
+         DataInputStream dis = new DataInputStream(bais);
+         int opcode = dis.readShort();
+         if(opcode != ERROR){
+            errorNo = -1;
+            errorMsg = "";
+            
+            dis.close();
+            return;
+         }
+         
+         errorNo = dis.readShort();
+         errorMsg = readBytes(dis);
+         
+         dis.close();
+      } //try
+      catch(Exception e){
+      
+      } //catch
+   
+   }// dissect
+   
+   /** getOpCode() method
+    *
+    * @return returns ACK: 4
+    */
+   public int getOpCode() {
+      return ERROR;
    }
 } //class ERRORPacket
