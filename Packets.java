@@ -477,7 +477,28 @@ class ERRORPacket extends Packets {
     * @return DatagramPacket Returns the newly created ERRORPacket
     */
    public DatagramPacket build() {
-      return null;
+      try{
+         ByteArrayOutputStream baos = new ByteArrayOutputStream(2 + 2 + errorMsg.length() + 1); // Ranging in size. First two bytes is ERROR opcode, next two bytes are the ecode, then the remaining bytes are the message length plus a 0 at the end.
+         DataOutputStream dos = new DataOutputStream(baos);
+      
+         dos.writeShort(ERROR); // opcode
+         dos.writeShort(errorNo);
+         
+         dos.writeBytes(errorMsg);
+         dos.writeByte(0);
+      
+         // Close the DataOutputStream to flush the last of the packet out
+         // to the ByteArrayOutputStream
+         dos.close();
+      
+      
+         byte[] holder = baos.toByteArray(); // Get the underlying byte[]
+         DatagramPacket errorPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
+      
+         return errorPkt;
+      }catch(Exception e){
+         return null;
+      }
    }
    
    /** dissect() method
