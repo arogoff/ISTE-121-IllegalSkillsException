@@ -311,6 +311,34 @@ class DATAPacket extends Packets {
     * @param dataPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket dataPkt) {
+      try{
+         toAddress = dataPkt.getAddress();
+         port = dataPkt.getPort();
+         
+         // Create a ByteArrayInputStream from the payload
+         // NOTE: give the packet data, offset, and length to the ByteArrayInputStream
+         ByteArrayInputStream bais = new ByteArrayInputStream(dataPkt.getData(), dataPkt.getOffset(), dataPkt.getLength());
+         DataInputStream dis = new DataInputStream(bais);
+         int opcode = dis.readShort();
+         if(opcode != ACK){
+            blockNo = 0;
+            
+            dis.close();
+            return;
+         }
+         
+         blockNo = dis.readShort();
+         
+         data = new byte[dataPkt.getLength() - 4];
+         for(int i = 0; i < dataPkt.getLength() - 4; i++){
+            data[i] = dis.readByte();
+         }
+         
+         dis.close();
+      } //try
+      catch(Exception e){
+      
+      } //catch
    }
    
 } //class DATAPacket
