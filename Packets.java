@@ -140,6 +140,14 @@ class RRQPacket extends Packets {
       return fileName;
    }
    
+   /** getBlockNo() method
+    *
+    * @return returns RRQ constant
+    */
+   public int getOpCode() {
+      return RRQ;
+   }
+   
 } //class RRQPacket
 
 
@@ -317,7 +325,25 @@ class ACKPacket extends Packets {
     * @return DatagramPacket Returns the newly created ACKPacket
     */
    public DatagramPacket build() {
-      return null;
+      try{
+         ByteArrayOutputStream baos = new ByteArrayOutputStream(4); // 4 bytes total size, 2 for opcode, 2 for block number
+         DataOutputStream dos = new DataOutputStream(baos);
+      
+         dos.writeShort(ACK); // opcode
+         dos.writeBytes(blockNo);
+      
+         // Close the DataOutputStream to flush the last of the packet out
+         // to the ByteArrayOutputStream
+         dos.close();
+      
+      
+         byte[] holder = baos.toByteArray(); // Get the underlying byte[]
+         DatagramPacket ackPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
+      
+         return ackPkt;
+      }catch(Exception e){
+         return null;
+      }
    }
    
    /** dissect() method
