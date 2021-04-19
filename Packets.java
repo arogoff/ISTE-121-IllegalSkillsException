@@ -383,6 +383,14 @@ class DATAPacket extends Packets {
       return data;
    }
    
+   /** getBlockNo() method
+    *
+    * @return returns blockNo
+    */
+   public int getBlockNo() {
+      return blockNo;
+   }
+   
 } //class DATAPacket
 
 
