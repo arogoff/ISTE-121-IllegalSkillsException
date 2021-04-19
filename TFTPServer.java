@@ -257,7 +257,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       * TFTP Read Request
       * when given a read request from a client, uses TFTP protocol
       */
-      public void doRRQ(DatagramPacket firstPkt) {
+      public void doRRQ(DatagramPacket firstPkt) { // AKA DOWNLOAD
          //firstPkt.dissect(); //dissect the packet
          //cSocket.bind(new InetSocketAddress(#)); this is where we change the port
          
