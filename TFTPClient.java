@@ -139,15 +139,18 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    public void doChooseFolder() {
          // Directory Chooser setup
       DirectoryChooser directoryChooser = new DirectoryChooser();
+      directoryChooser.setInitialDirectory(new File(System.getProperty("user.dir"))); //get current working directory
       File selectedDirectory = directoryChooser.showDialog(stage);
             
-      if(selectedDirectory == null){
-                  //No Directory selected
-      }else{
+      if(selectedDirectory == null) {
+         //No Directory selected
+         taLog.appendText("No directory selected!\n");
+      }
+      else{
          tfSentence.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
       }
          
-   }
+   } //doChooseFolder()
    
    /** 
    * doConnect()
@@ -155,20 +158,20 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * Connects to server using TFTP_PORT
    */
    public void doConnect() {
-      String serverIP = "";
+      String ip = "";
       if(tfServerIP.getText().equals("")){
-         serverIP = "localhost";
+         ip = "localhost";
       }else{
-         serverIP = tfServerIP.getText();
+         ip = tfServerIP.getText();
       }
       
       try {
-         InetAddress ip = InetAddress.getByName(serverIP);
+         serverIP = InetAddress.getByName(ip);
       
-         socket = new DatagramSocket(TFTP_PORT, ip);
+         socket = new DatagramSocket();
          socket.setSoTimeout(1000);
       } catch (Exception e) {
-         taLog.appendText("Connection failed...\n");
+         taLog.appendText("Connection failed..." + e + "\n");
          return;
       } 
    
@@ -221,50 +224,63 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          // LOOP START HERE
          boolean continueLoop = true;
          
-         while(continueLoop){
+         while(continueLoop) {
          //receiving the DATA Packet from the Server
             byte[] holder = new byte[MAX_PACKET];
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
             socket.receive(incoming); //PACKET 2
             
-            DATAPacket dataPkt = new DATAPacket();
-            dataPkt.dissect(incoming);
+            // Figure out if the incoming datagrampacket is RRQ or WRQ packet
+            ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
+            DataInputStream dis = new DataInputStream(bais);
+            int opcode = dis.readShort();
+            if (opcode == ERROR) {
             
-            byte[] data = dataPkt.getData();
-            int blockNo = dataPkt.getBlockNo();
-            int port = dataPkt.getPort();
-            int dataLen = dataPkt.getDataLen();
+            }
+            else if (opcode == DATA) {
+               DATAPacket dataPkt = new DATAPacket();
+               dataPkt.dissect(incoming);
             
-            // change socket to new port
-            //socket.bind(new InetSocketAddress(#)); this is where we change the port
+               byte[] data = dataPkt.getData();
+               int blockNo = dataPkt.getBlockNo();
+               int port = dataPkt.getPort();
+               int dataLen = dataPkt.getDataLen();
             
-            DataOutputStream dos = null;
+               // change socket to new port
+               // socket.bind(new InetSocketAddress(#)); this is where we change the port
             
-            try{
-               dos = new DataOutputStream(new FileOutputStream(fileName)); //open the file
+               DataOutputStream dos = null;
+            
+               try {
+                  dos = new DataOutputStream(new FileOutputStream(fileName)); //open the file
                
                //read until end of file exception
-               while (true) {
-                  for (int i = 0; i < data.length; i++) { //for all the data
-                     dos.writeByte(data[i]);  //read in the data
+                  while (true) {
+                     for (int i = 0; i < data.length; i++) { //for all the data
+                        dos.writeByte(data[i]);  //read in the data
+                     }
                   }
-               }
-            }catch(EOFException eofe){
-               ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
-               socket.send(ackPkt.build()); // PACKET 3
+               } //try
+               catch(EOFException eofe) {
+                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
+                  socket.send(ackPkt.build()); // PACKET 3
                
-               if(dataLen < 516)
-                  continueLoop = false;
-            }
-         }
+                  if(dataLen < 516)
+                     continueLoop = false;
+               }
+            } //else if
+            
+         } //while
          
-      }catch(SocketTimeoutException ste){
+      } // try
+      catch(SocketTimeoutException ste){
          taLog.appendText("Download timed out waiting for DATA!\n");
-      }catch(Exception e){}
-      
-      finally{
-         doDisconnect();
       }
+      catch(IOException ioe) {}
+      //catch(Exception e){taLog.appendText("Exception... " + e + "\n");}
+   
+      taLog.appendText("Disconnecting from the server...\n");
+      doDisconnect();
    }
 
 } //TFTPClient
