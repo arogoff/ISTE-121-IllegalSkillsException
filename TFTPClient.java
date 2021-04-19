@@ -55,7 +55,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
     */
    public void start(Stage _stage) {
       stage = _stage;
-      stage.setTitle("TFTPClient");
+      stage.setTitle("TFTPClient - IllegalSkillsException");
       stage.setOnCloseRequest(
          new EventHandler<WindowEvent>() {
             public void handle(WindowEvent evt) { System.exit(0); }
@@ -95,8 +95,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       btnChooseFolder.setOnAction(this);
       btnUpload.setOnAction(this);
       btnDownload.setOnAction(this);
+      
+      tfSentence.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
    
       scene = new Scene(root, 475, 300);
+      stage.setX(1200);
+      stage.setY(250);
       stage.setScene(scene);
       stage.show();      
       
@@ -148,6 +152,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }
       else{
          tfSentence.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
+         taLog.appendText("Directory changed to " + selectedDirectory.getAbsolutePath() + "\n");
       }
          
    } //doChooseFolder()
@@ -159,9 +164,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    */
    public void doConnect() {
       String ip = "";
-      if(tfServerIP.getText().equals("")){
+      if(tfServerIP.getText().equals("")) {
          ip = "localhost";
-      }else{
+      }
+      else {
          ip = tfServerIP.getText();
       }
       
@@ -173,12 +179,13 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          System.out.println(socket.getPort() + "  " + socket.getLocalPort());
          
          socket.setSoTimeout(1000);
-      } catch (Exception e) {
+      } //try
+      catch (Exception e) {
          taLog.appendText("Connection failed..." + e + "\n");
          return;
       } 
    
-   }
+   } //doConnect()
    
    /** 
    * doDisconnect()
@@ -186,9 +193,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * Disconnects from server
    */
    public void doDisconnect() {
-      try{
+      try {
          socket.close();
-      }catch(Exception e){}
+      }
+      catch(Exception e){}
       
       socket = null;
    }
@@ -208,7 +216,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * downloads a file from the server using the TFTP protocol
    */
    public void doDownload() { // create rrq packet to send
-      try{
+      try {
          // connect to server stuff here (aka doConnect() method)
          doConnect();
          
@@ -231,10 +239,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          
          while(continueLoop) {
             System.out.println("beginning from loop");
-           //receiving the DATA Packet from the Server
+            //receiving the DATA Packet from the Server
             byte[] holder = new byte[MAX_PACKET];
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-            System.out.println("before incoming");
+            System.out.println("before receiving incoming packet");
             socket.receive(incoming); //PACKET 2
             
             System.out.println("1");
@@ -292,7 +300,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      
                   System.out.println("8");
                }
-            } //else if
+               
+            } //else if opcode = DATA
             
             System.out.println("9");
             
