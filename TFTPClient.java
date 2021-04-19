@@ -230,21 +230,30 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
             socket.receive(incoming); //PACKET 2
             
+            System.out.println("1");
+            
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
             ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort();
+            
+            System.out.println("2");
+            
             if (opcode == ERROR) {
             
             }
             else if (opcode == DATA) {
                DATAPacket dataPkt = new DATAPacket();
                dataPkt.dissect(incoming);
+               
+               System.out.println("3");
             
                byte[] data = dataPkt.getData();
                int blockNo = dataPkt.getBlockNo();
                int port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
+               
+               System.out.println("4");
             
                // change socket to new port
                // socket.bind(new InetSocketAddress(#)); this is where we change the port
@@ -254,33 +263,46 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                try {
                   dos = new DataOutputStream(new FileOutputStream(fileName)); //open the file
                
+                  System.out.println("5");
+               
                //read until end of file exception
                   while (true) {
                      for (int i = 0; i < data.length; i++) { //for all the data
                         dos.writeByte(data[i]);  //read in the data
                      }
+                     System.out.println("6");
                   }
                } //try
                catch(EOFException eofe) {
+               
+                  System.out.println("7");
+                  
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                
                   if(dataLen < 516)
                      continueLoop = false;
+                     
+                  System.out.println("8");
                }
             } //else if
+            
+            System.out.println("9");
             
          } //while
          
       } // try
       catch(SocketTimeoutException ste){
          taLog.appendText("Download timed out waiting for DATA!\n");
+         System.out.println("a");
       }
       catch(IOException ioe) {}
       //catch(Exception e){taLog.appendText("Exception... " + e + "\n");}
    
       taLog.appendText("Disconnecting from the server...\n");
       doDisconnect();
+      
+      System.out.println("b");
    }
 
 } //TFTPClient
