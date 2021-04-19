@@ -125,15 +125,15 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    
    // Start method for the server threads
    public void doStart() {
-      UDPServerThread t1 = new UDPServerThread();
-      //serverThread.start();
+      serverThread = new UDPServerThread();
+      serverThread.start();
       log("Server Started!\n");
       btnStartStop.setText("Stop");
    }
    
    //Stop method
    public void doStop() {
-      //UDPserverThread.stopServer();
+      serverThread.stopServer();
       log("Server Stopped!\n");
       btnStartStop.setText("Start");
    }
@@ -155,7 +155,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             mainSocket = new DatagramSocket(TFTP_PORT); // Binds the socket to the port
          }
          catch(IOException ioe) {
-            log("IO Exception (1): " + ioe + "\n");
+            log("IO Exception in UDPServerThread... (1): " + ioe + "\n");
             return;
          }
       
@@ -184,6 +184,21 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          
          } // of while loop
       } // of run     
+      
+      /** 
+      * stopServer()
+      * Stops the server
+      * Stops any new incoming connections, clients already connected can continue to work
+      */
+      public void stopServer() {
+         try {
+            mainSocket.close();
+         }
+         catch(Exception e) {
+            log("Exception has occurred... " + e + "\n");
+         }
+      } //stopServer()
+      
    }  //UDPServerThread class
 
    
@@ -313,10 +328,12 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                cSocket.receive(incoming);
                readACKPacket(incoming, blockNo--);
             } //try
-            catch(IOException ioe){
-            
+            catch(IOException ioe) {
+               log("IOException..." + ioe + "\n");
             }
-            catch(Exception e){}
+            catch(Exception e) {
+               log("Exception occurred..." + e + "\n");
+            }
          } //catch
          catch(Exception e) {
             log("Exception occurred in doRRQ()..." + e + "\n");
