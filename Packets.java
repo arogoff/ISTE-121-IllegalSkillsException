@@ -375,6 +375,14 @@ class DATAPacket extends Packets {
       return DATA;
    }
    
+   /** getData() method
+    *
+    * @return returns byte[] data
+    */
+   public byte[] getData() {
+      return data;
+   }
+   
 } //class DATAPacket
 
 
