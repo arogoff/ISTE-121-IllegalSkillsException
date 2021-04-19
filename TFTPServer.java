@@ -221,7 +221,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             firstPkt = _pkt;
             // So - the new DatagramSocket is on a DIFFERENT port, chosen by the OS. If we use cSocket from now on, then port switching has been achieved.
             // in the parameter, put the new port
-            cSocket = new DatagramSocket();
+            cSocket = new DatagramSocket(34001);
          }
          catch(SocketException se) {
          
@@ -338,7 +338,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                createERROR(toAddress, e.toString());
             }
          } //catch
-         catch(Exception e) {
+         catch(IOException ioe) {
+            log("IOException occurred in doRRQ()..." + ioe + "\n");
+            createERROR(toAddress, ioe.toString());
+         }catch(Exception e) {
             log("Exception occurred in doRRQ()..." + e + "\n");
             createERROR(toAddress, e.toString());
          }
@@ -347,7 +350,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       
       public void createERROR(InetAddress toAddress, String msg){
          try{
-            ERRORPacket errorPkt = new ERRORPacket(toAddress, cSocket.getPort(), 0, msg);
+            ERRORPacket errorPkt = new ERRORPacket(toAddress, cSocket.getLocalPort(), 0, msg);
             cSocket.send(errorPkt.build());
             log("ERROR Packet Sent\n");
          }catch(IOException e){
