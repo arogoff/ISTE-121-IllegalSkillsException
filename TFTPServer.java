@@ -237,26 +237,19 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          try {
             // In this try-catch run the protocol, using firstPkt as
             // the first packet in the conversation
-            
-            byte[] holder = new byte[MAX_PACKET];
-            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-            System.out.println("Before receiving initial packet");
-            // **ISSUE WITH LINE 244**
-            cSocket.receive(incoming); //receive the incoming packet
-            System.out.println("After receiving initial packet");
          
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
-            ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
+            ByteArrayInputStream bais = new ByteArrayInputStream(firstPkt.getData(), firstPkt.getOffset(), firstPkt.getLength());
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort();
             switch(opcode) {
                case RRQ:
                   log("First Packet is a Read Request!, opcode: " + opcode + "\n");
-                  doRRQ(incoming);
+                  doRRQ(firstPkt);
                   break;
                case WRQ:
                   log("First Packet is a Write Request!, opcode: " + opcode + "\n");
-                  doWRQ(incoming);
+                  doWRQ(firstPkt);
                   break;
                default:
                   break;
@@ -285,16 +278,24 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          // Gets the IP address of the machine that sent the packet
          InetAddress toAddress = firstPkt.getAddress(); //get the address on a different port than 69
          
+         System.out.println("1");
+         
          RRQPacket rrqPkt = new RRQPacket();
          rrqPkt.dissect(firstPkt);
+         
+         System.out.println("2");
          
          String fileName = rrqPkt.getFileName();
          int blockNo = 1;
          byte[] data = new byte[512];
          
+         System.out.println("3");
+         
          DataInputStream dis = null; //make the streams
          try {
             dis = new DataInputStream(new FileInputStream(fileName)); //open the file
+         
+            System.out.println("4");
          
             //read until end of file exception
             while (true) {
@@ -303,9 +304,13 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   data[i] = dis.readByte();  //read in the data
                }
                
+               System.out.println("5");
+               
                DATAPacket secondPkt = new DATAPacket(toAddress, cSocket.getPort(), blockNo, data, getLength(data)); //make the second packet
                
                blockNo++; // Increment block number
+               
+               System.out.println("6");
                
                //Sends the data packet and waits to receive the ACK Packet from the client
                log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - " + data[0] + "   " + data[1] + "   " + data[2] + "   " + data[3] + "   ..." + 
