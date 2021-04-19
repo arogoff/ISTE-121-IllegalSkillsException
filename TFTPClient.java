@@ -169,6 +169,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          serverIP = InetAddress.getByName(ip);
       
          socket = new DatagramSocket();
+         socket.connect(serverIP, TFTP_PORT);
+         
          socket.setSoTimeout(1000);
       } catch (Exception e) {
          taLog.appendText("Connection failed..." + e + "\n");
@@ -216,18 +218,22 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          input.showAndWait();
          
          String fileName = input.getEditor().getText();
+         System.out.println("-1");
          
          //InetAddress _toAddress, int _port, String _fileName, String _mode
          RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
          socket.send(rrqPkt.build()); //PACKET 1
+         System.out.println("0");
          
          // LOOP START HERE
          boolean continueLoop = true;
          
          while(continueLoop) {
-         //receiving the DATA Packet from the Server
+            System.out.println("beginning from loop");
+           //receiving the DATA Packet from the Server
             byte[] holder = new byte[MAX_PACKET];
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+            System.out.println("before incoming");
             socket.receive(incoming); //PACKET 2
             
             System.out.println("1");
