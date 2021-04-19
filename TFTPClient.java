@@ -150,6 +150,44 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    }
    
    /** 
+   * doConnect()
+   * 
+   * Connects to server using TFTP_PORT
+   */
+   public void doConnect() {
+      String serverIP = "";
+      if(tfServerIP.getText().equals("")){
+         serverIP = "localhost";
+      }else{
+         serverIP = tfServerIP.getText();
+      }
+      
+      try {
+         InetAddress ip = InetAddress.getByName(serverIP);
+      
+         socket = new DatagramSocket(TFTP_PORT, ip);
+         socket.setSoTimeout(1000);
+      } catch (Exception e) {
+         taLog.appendText("Connection failed...\n");
+         return;
+      } 
+   
+   }
+   
+   /** 
+   * doDisconnect()
+   * 
+   * Disconnects from server
+   */
+   public void doDisconnect() {
+      try{
+         socket.close();
+      }catch(Exception e){}
+      
+      socket = null;
+   }
+   
+   /** 
    * doUpload()
    * uses FileChooser
    * uploads a file to the server using the TFTP protocol
@@ -163,8 +201,70 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * uses FileChooser
    * downloads a file from the server using the TFTP protocol
    */
-   public void doDownload() {
-   
+   public void doDownload() { // create rrq packet to send
+      try{
+         // connect to server stuff here (aka doConnect() method)
+         doConnect();
+         
+         // TextInputDialog to get the name of the file
+         TextInputDialog input = new TextInputDialog();
+         input.setHeaderText("Enter the name of the remote file to download");
+         input.setTitle("Remote Name");
+         input.showAndWait();
+         
+         String fileName = input.getEditor().getText();
+         
+         //InetAddress _toAddress, int _port, String _fileName, String _mode
+         RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
+         socket.send(rrqPkt.build()); //PACKET 1
+         
+         // LOOP START HERE
+         boolean continueLoop = true;
+         
+         while(continueLoop){
+         //receiving the DATA Packet from the Server
+            byte[] holder = new byte[MAX_PACKET];
+            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+            socket.receive(incoming); //PACKET 2
+            
+            DATAPacket dataPkt = new DATAPacket();
+            dataPkt.dissect(incoming);
+            
+            byte[] data = dataPkt.getData();
+            int blockNo = dataPkt.getBlockNo();
+            int port = dataPkt.getPort();
+            int dataLen = dataPkt.getDataLen();
+            
+            // change socket to new port
+            //socket.bind(new InetSocketAddress(#)); this is where we change the port
+            
+            DataOutputStream dos = null;
+            
+            try{
+               dos = new DataOutputStream(new FileOutputStream(fileName)); //open the file
+               
+               //read until end of file exception
+               while (true) {
+                  for (int i = 0; i < data.length; i++) { //for all the data
+                     dos.writeByte(data[i]);  //read in the data
+                  }
+               }
+            }catch(EOFException eofe){
+               ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
+               socket.send(ackPkt.build()); // PACKET 3
+               
+               if(dataLen < 516)
+                  continueLoop = false;
+            }
+         }
+         
+      }catch(SocketTimeoutException ste){
+         taLog.appendText("Download timed out waiting for DATA!\n");
+      }catch(Exception e){}
+      
+      finally{
+         doDisconnect();
+      }
    }
 
 } //TFTPClient
