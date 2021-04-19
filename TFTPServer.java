@@ -54,7 +54,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    public void start(Stage _stage) {
       // Window setup
       stage = _stage;
-      stage.setTitle("TFTPServer");
+      stage.setTitle("TFTPServer - IllegalSkillsException");
       stage.setOnCloseRequest(
          new EventHandler<WindowEvent>() {
             public void handle(WindowEvent evt) { System.exit(0); }
@@ -81,9 +81,13 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       btnStartStop.setOnAction(this);
       btnChooseFolder.setOnAction(this);
       
+      dir.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
+      
       // Show window
       scene = new Scene(root, 525, 250);
       stage.setScene(scene);
+      stage.setX(600);
+      stage.setY(250);
       stage.show();      
    }
       
