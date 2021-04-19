@@ -74,6 +74,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       fpLog.setAlignment(Pos.CENTER);
       taLog.setPrefRowCount(10);
       taLog.setPrefColumnCount(35);
+      dir.setPrefWidth(400); //directory width
       fpLog.getChildren().addAll(lblLog, taLog, btnChooseFolder, dir);
       root.getChildren().add(fpLog);
       
@@ -112,23 +113,28 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       DirectoryChooser directoryChooser = new DirectoryChooser();
       File selectedDirectory = directoryChooser.showDialog(stage);
             
-      if(selectedDirectory == null){
-                  //No Directory selected
-      }else{
-         dir.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
+      if(selectedDirectory == null) {
+         log("No directory chosen\n");
+         //No Directory selected
       }
-   }
+      else {
+         dir.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
+         log("Directory changed to " + selectedDirectory.getAbsolutePath() + "\n");
+      }
+   } //doChooseFolder()
    
    // Start method for the server threads
    public void doStart() {
       UDPServerThread t1 = new UDPServerThread();
       //serverThread.start();
+      log("Server Started!\n");
       btnStartStop.setText("Stop");
    }
    
    //Stop method
    public void doStop() {
       //UDPserverThread.stopServer();
+      log("Server Stopped!\n");
       btnStartStop.setText("Start");
    }
    
@@ -142,7 +148,6 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       public void run() {
          // Server stuff ... wait for a packet and process it
          try {
-            // sSocket = new ServerSocket(SERVER_PORT);
             // UDPServerThread is an inner class, inside the main
             // GUI class that extends Application.
             // mainSocket is a DatagramSocket declared in the global scope
@@ -158,14 +163,12 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          // start a client thread
          while (true) {
             // Socket for the client
-            // Socket cSocket = null;
             // The socket for the client is created in the client thread
             byte[] holder = new byte[MAX_PACKET];
             // packet for 1st packet from a client
             DatagramPacket pkt = new DatagramPacket(holder, MAX_PACKET);
             try {
                // Wait for a connection and set up IO
-               // cSocket = sSocket.accept();
                // We get a DatagramPacket, instead of a Socket, in the UDP case
                mainSocket.receive(pkt); // Wait for 1st packet
             }
@@ -175,14 +178,13 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                return;
             }
             // Create a thread for the client
-            // UDPClientThread ct = new UDPClientThread(cSocket);
             // Instead of passing a Socket to the client thread, we pass the 1st packet
             UDPClientThread ct = new UDPClientThread(pkt);
             ct.start();
          
          } // of while loop
       } // of run     
-   }  
+   }  //UDPServerThread class
 
    
    /** 
@@ -199,20 +201,22 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    
       // Constructor for ClientThread
       public UDPClientThread(DatagramPacket _pkt) {
-         try{
+         try {
             //cSocket = _cSocket;
             firstPkt = _pkt;
             // So - the new DatagramSocket is on a DIFFERENT port, chosen by the OS. If we use cSocket from now on, then port switching has been achieved.
             cSocket = new DatagramSocket();
-         }catch(SocketException se){
+         }
+         catch(SocketException se) {
          
-         }catch(Exception e){}
-      }
+         }
+         catch(Exception e){}
+      } //constructor
    
       // main program for a ClientThread
       public void run() {
-         // log("Client connected!\n");
-         log("Client packet received!\n");
+         // When a client connects
+         log("Client connected & packet received!\n");
       
          try {
             // In this try-catch run the protocol, using firstPkt as
@@ -222,21 +226,23 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
             cSocket.receive(incoming);
          
-         // Figure out if the incoming datagrampacket is RRQ or WRQ packet
+            // Figure out if the incoming datagrampacket is RRQ or WRQ packet
             ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort();
-            switch(opcode){
+            switch(opcode) {
                case RRQ:
                   doRRQ(incoming);
+                  log("First Packet is a Read Request!, opcode: " + opcode + "\n");
                   break;
                case WRQ:
                   doWRQ(incoming);
+                  log("First Packet is a Write Request!, opcode: " + opcode + "\n");
                   break;
                default:
                   break;
             }
-         }
+         } //try
          catch(IOException ioe) {
             log("IO Exception (3): " + ioe + "\n");
             // For TFTP, probably send an ERROR packet here
@@ -295,7 +301,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             
          } //try
          catch(EOFException eofe) {
-            try{
+            try {
                DATAPacket secondPkt = new DATAPacket(toAddress, cSocket.getPort(), blockNo, data, getLength(data));
                dis.close(); //close the stream
                //Sends the data packet and waits to receive the ACK Packet from the client
@@ -306,12 +312,14 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                cSocket.receive(incoming);
                readACKPacket(incoming, blockNo--);
-            }catch(IOException ioe){
+            } //try
+            catch(IOException ioe){
             
-            }catch(Exception e){}
+            }
+            catch(Exception e){}
          } //catch
          catch(Exception e) {
-            System.out.println("Exception occurred..." + e);
+            log("Exception occurred in doRRQ()..." + e + "\n");
             System.exit(0);
          }
          
@@ -354,7 +362,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          
          if (ackPkt.getOpCode() == ACK && ackPkt.getBlockNo() == blockNo) {
             //all good
-            log("all good");
+            log("readACKPacket()... ACK!, all good\n");
          }
       } //readACKPacket()
       
