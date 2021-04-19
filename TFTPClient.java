@@ -170,6 +170,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       
          socket = new DatagramSocket();
          socket.connect(serverIP, TFTP_PORT);
+         System.out.println(socket.getPort() + "  " + socket.getLocalPort());
          
          socket.setSoTimeout(1000);
       } catch (Exception e) {
