@@ -220,6 +220,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             //cSocket = _cSocket;
             firstPkt = _pkt;
             // So - the new DatagramSocket is on a DIFFERENT port, chosen by the OS. If we use cSocket from now on, then port switching has been achieved.
+            // in the parameter, put the new port
             cSocket = new DatagramSocket();
          }
          catch(SocketException se) {
@@ -231,7 +232,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       // main program for a ClientThread
       public void run() {
          // When a client connects
-         log("Client connected & packet received!\n");
+         log("Client connected\n");
       
          try {
             // In this try-catch run the protocol, using firstPkt as
@@ -239,7 +240,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             
             byte[] holder = new byte[MAX_PACKET];
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-            cSocket.receive(incoming);
+            System.out.println("Before receiving initial packet");
+            // **ISSUE WITH LINE 244**
+            cSocket.receive(incoming); //receive the incoming packet
+            System.out.println("After receiving initial packet");
          
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
             ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
@@ -247,12 +251,12 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             int opcode = dis.readShort();
             switch(opcode) {
                case RRQ:
-                  doRRQ(incoming);
                   log("First Packet is a Read Request!, opcode: " + opcode + "\n");
+                  doRRQ(incoming);
                   break;
                case WRQ:
-                  doWRQ(incoming);
                   log("First Packet is a Write Request!, opcode: " + opcode + "\n");
+                  doWRQ(incoming);
                   break;
                default:
                   break;
@@ -304,12 +308,16 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                blockNo++; // Increment block number
                
                //Sends the data packet and waits to receive the ACK Packet from the client
+               log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - " + data[0] + "   " + data[1] + "   " + data[2] + "   " + data[3] + "   ..." + 
+                  data[getLength(data) -3 ] + "   " + data[getLength(data) -2 ] + "   " + data[getLength(data) -1 ] + "   " + data[getLength(data)] + "\n");
+                  
                cSocket.send(secondPkt.build()); //send the second packet
                
                //receiving the ACK Packet from the client
                byte[] holder = new byte[MAX_PACKET];
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                cSocket.receive(incoming);
+               log("Received ACK Packet!" + "\n");
                readACKPacket(incoming, blockNo--);
              
             } //while
