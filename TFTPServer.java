@@ -278,24 +278,16 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          // Gets the IP address of the machine that sent the packet
          InetAddress toAddress = firstPkt.getAddress(); //get the address on a different port than 69
          
-         System.out.println("1");
-         
          RRQPacket rrqPkt = new RRQPacket();
          rrqPkt.dissect(firstPkt);
-         
-         System.out.println("2");
          
          String fileName = rrqPkt.getFileName();
          int blockNo = 1;
          byte[] data = new byte[512];
          
-         System.out.println("3");
-         
          DataInputStream dis = null; //make the streams
          try {
             dis = new DataInputStream(new FileInputStream(fileName)); //open the file
-         
-            System.out.println("4");
          
             //read until end of file exception
             while (true) {
@@ -304,13 +296,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   data[i] = dis.readByte();  //read in the data
                }
                
-               System.out.println("5");
-               
                DATAPacket secondPkt = new DATAPacket(toAddress, cSocket.getPort(), blockNo, data, getLength(data)); //make the second packet
                
                blockNo++; // Increment block number
-               
-               System.out.println("6");
                
                //Sends the data packet and waits to receive the ACK Packet from the client
                log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - " + data[0] + "   " + data[1] + "   " + data[2] + "   " + data[3] + "   ..." + 
@@ -350,7 +338,6 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          } //catch
          catch(Exception e) {
             log("Exception occurred in doRRQ()..." + e + "\n");
-            System.exit(0);
          }
          
       } //doRRQ()
