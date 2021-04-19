@@ -306,7 +306,7 @@ class DATAPacket extends Packets {
     * @return DatagramPacket Returns the newly created DATAPacket
     */
    public DatagramPacket build() {
-      try{
+      try {
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2 + dataLen + 2); // 4-516 bytes. Opcode = 2, Blk# = 2, datalength for the rest of the size
          DataOutputStream dos = new DataOutputStream(baos);
       
@@ -325,7 +325,8 @@ class DATAPacket extends Packets {
          DatagramPacket dataPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
       
          return dataPkt;
-      }catch(Exception e){
+      } //try
+      catch(Exception e) {
          return null;
       }
    }
@@ -336,7 +337,7 @@ class DATAPacket extends Packets {
     * @param dataPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket dataPkt) {
-      try{
+      try {
          toAddress = dataPkt.getAddress();
          port = dataPkt.getPort();
          
@@ -355,13 +356,13 @@ class DATAPacket extends Packets {
          blockNo = dis.readShort();
          
          data = new byte[dataPkt.getLength() - 4];
-         for(int i = 0; i < dataPkt.getLength() - 4; i++){
+         for(int i = 0; i < dataPkt.getLength() - 4; i++) {
             data[i] = dis.readByte();
          }
          
          dis.close();
       } //try
-      catch(Exception e){
+      catch(Exception e) {
       
       } //catch
    } // dissect
@@ -428,7 +429,8 @@ class ACKPacket extends Packets {
          DatagramPacket ackPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
       
          return ackPkt;
-      }catch(Exception e){
+      } //try
+      catch(Exception e) {
          return null;
       }
    }
@@ -459,7 +461,7 @@ class ACKPacket extends Packets {
          
          dis.close();
       } //try
-      catch(Exception e){
+      catch(Exception e) {
       
       } //catch
    }
@@ -520,7 +522,7 @@ class ERRORPacket extends Packets {
     * @return DatagramPacket Returns the newly created ERRORPacket
     */
    public DatagramPacket build() {
-      try{
+      try {
          ByteArrayOutputStream baos = new ByteArrayOutputStream(2 + 2 + errorMsg.length() + 1); // Ranging in size. First two bytes is ERROR opcode, next two bytes are the ecode, then the remaining bytes are the message length plus a 0 at the end.
          DataOutputStream dos = new DataOutputStream(baos);
       
@@ -539,7 +541,8 @@ class ERRORPacket extends Packets {
          DatagramPacket errorPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
       
          return errorPkt;
-      }catch(Exception e){
+      } //try
+      catch(Exception e) {
          return null;
       }
    }
@@ -559,7 +562,7 @@ class ERRORPacket extends Packets {
          ByteArrayInputStream bais = new ByteArrayInputStream(errorPkt.getData(), errorPkt.getOffset(), errorPkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
          int opcode = dis.readShort();
-         if(opcode != ERROR){
+         if(opcode != ERROR) {
             errorNo = -1;
             errorMsg = "";
             
@@ -572,7 +575,7 @@ class ERRORPacket extends Packets {
          
          dis.close();
       } //try
-      catch(Exception e){
+      catch(Exception e) {
       
       } //catch
    
