@@ -391,6 +391,22 @@ class DATAPacket extends Packets {
       return blockNo;
    }
    
+   /** getPort() method
+    *
+    * @return returns port
+    */
+   public int getPort() {
+      return port;
+   }
+   
+   /** getDataLen() method
+    *
+    * @return returns dataLen
+    */
+   public int getDataLen() {
+      return dataLen;
+   }
+   
 } //class DATAPacket
 
 
