@@ -331,16 +331,29 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             } //try
             catch(IOException ioe) {
                log("IOException..." + ioe + "\n");
+               createERROR(toAddress, ioe.toString());
             }
             catch(Exception e) {
                log("Exception occurred..." + e + "\n");
+               createERROR(toAddress, e.toString());
             }
          } //catch
          catch(Exception e) {
             log("Exception occurred in doRRQ()..." + e + "\n");
+            createERROR(toAddress, e.toString());
          }
          
       } //doRRQ()
+      
+      public void createERROR(InetAddress toAddress, String msg){
+         try{
+            ERRORPacket errorPkt = new ERRORPacket(toAddress, cSocket.getPort(), 0, msg);
+            cSocket.send(errorPkt.build());
+            log("ERROR Packet Sent\n");
+         }catch(IOException e){
+            System.out.println(e.toString());
+         }
+      }
       
       /** 
       * doWRQ()
