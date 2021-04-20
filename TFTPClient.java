@@ -31,7 +31,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
 
    // These will be in Row2
    private Button btnChooseFolder = new Button("Choose Folder");
-   private TextField tfSentence = new TextField();
+   private TextField tfDirectory = new TextField();
    
    // Components - CENTER
    private Button btnDownload = new Button("Download");
@@ -73,7 +73,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       // ROW2 - Textfield for a sentence to send and Send button
       FlowPane fpRow2 = new FlowPane(8,8);
       fpRow2.setAlignment(Pos.CENTER);
-      fpRow2.getChildren().addAll(btnChooseFolder, tfSentence);
+      fpRow2.getChildren().addAll(btnChooseFolder, tfDirectory);
       root.getChildren().add(fpRow2);
       
       // Buttons - Upload and Download
@@ -87,7 +87,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       fpLog.setAlignment(Pos.CENTER);
       taLog.setPrefColumnCount(35);
       taLog.setPrefRowCount(10);
-      tfSentence.setPrefColumnCount(25);
+      tfDirectory.setPrefColumnCount(25);
       fpLog.getChildren().addAll(lblLog, taLog);
       root.getChildren().add(fpLog);
       
@@ -96,7 +96,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       btnUpload.setOnAction(this);
       btnDownload.setOnAction(this);
       
-      tfSentence.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
+      tfDirectory.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
    
       scene = new Scene(root, 475, 300);
       stage.setX(1200);
@@ -152,7 +152,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          taLog.appendText("No directory selected!\n");
       }
       else{
-         tfSentence.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
+         tfDirectory.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
          taLog.appendText("Directory changed to " + selectedDirectory.getAbsolutePath() + "\n");
       }
          
@@ -218,6 +218,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * downloads a file from the server using the TFTP protocol
    */
    public void doDownload() { // create rrq packet to send
+   
+      String selectedFile = ""; //for referencing the name of the file after the catches.
       try {
          // connect to server stuff here (aka doConnect() method)
          doConnect();
@@ -226,9 +228,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          TextInputDialog input = new TextInputDialog();
          input.setHeaderText("Enter the name of the remote file to download");
          input.setTitle("Remote Name");
+         input.setX(1200); //set the textinputdialog ontop of the client
+         input.setY(250);
          input.showAndWait();
          
          String fileName = input.getEditor().getText();
+         selectedFile = fileName;
          
          //InetAddress _toAddress, int _port, String _fileName, String _mode
          RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
@@ -278,12 +283,24 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                DataOutputStream dos = null;
                   
                try {
-                  dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file
-                     
-                  //read until end of file exception
-                        
+                  //make a filechooser for saving
+                  FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
+                  chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
+                  chooserWindow.setTitle("Choose where to save");
+                  chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
+               
+                  File placeToSave = chooserWindow.showSaveDialog(stage); //save dialog
+                  if (placeToSave == null) {
+                     taLog.appendText("You did not choose a place to save... choosing default directory.\n");
+                     dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file
+                  }
+                  else {
+                     dos = new DataOutputStream(new FileOutputStream(placeToSave, false)); //open the file
+                  }
+                  
+                  //write until end of file exception
                   for (int i = 0; i < data.length; i++) { //for all the data
-                     dos.writeByte(data[i]);  //read in the data
+                     dos.writeByte(data[i]);  //write the data
                   }
                            
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
@@ -312,11 +329,15 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       } // try
       catch(SocketTimeoutException ste) {
          taLog.appendText("Download timed out waiting for DATA!\n");
+         return;
       }
       catch(IOException ioe) {
-         taLog.appendText("IOException occurred in doDownload()..." + ioe);
+         taLog.appendText("IOException occurred in doDownload()..." + ioe + "\n");
+         return;
       }
-
+      
+      taLog.appendText(selectedFile + " has finished downloading! \n");
+      
    } //doDownload()
 
 } //TFTPClient
