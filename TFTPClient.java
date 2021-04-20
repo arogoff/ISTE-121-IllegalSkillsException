@@ -234,8 +234,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          
          // LOOP START HERE
          boolean continueLoop = true;
-         
+         int j = 0;
          while(continueLoop) {
+            System.out.println("loop iteration: " + j);
             System.out.println("beginning from loop");
             //receiving the DATA Packet from the Server
             byte[] holder = new byte[MAX_PACKET];
@@ -259,44 +260,47 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                return;
             }
             else if (opcode == DATA) {
+            
                DATAPacket dataPkt = new DATAPacket();
                dataPkt.dissect(incoming);
-            
+                  
                byte[] data = dataPkt.getData();
                int blockNo = dataPkt.getBlockNo();
                int port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
                taLog.appendText(blockNo + " " + port + " " + dataLen + "\n");
-            
-               // change socket to new port
-               // socket.bind(new InetSocketAddress(#)); this is where we change the port
-            
+                  
+                     // change socket to new port
+                     // socket.bind(new InetSocketAddress(#)); this is where we change the port
+                  
                DataOutputStream dos = null;
-            
+                  
                try {
                   dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file
-               
-               //read until end of file exception
-                  
+                     
+                     //read until end of file exception
+                        
                   for (int i = 0; i < data.length; i++) { //for all the data
                      dos.writeByte(data[i]);  //read in the data
                   }
-                  
+                           
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
-               
-                  if(dataLen < 516)
+                        
+                  if(dataLen < 515)
                      continueLoop = false;
-                  
+                        
                } //try
                catch(EOFException eofe) {
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
-               
-                  if(dataLen < 516)
+                     
+                  if(dataLen < 515)
                      continueLoop = false;
                }
                
+               j++;
+                
             } //else if opcode = DATA
          } //while
          
@@ -307,8 +311,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       catch(IOException ioe) {}
       //catch(Exception e){taLog.appendText("Exception... " + e + "\n");}
    
-      taLog.appendText("Disconnecting from the server...\n");
-      doDisconnect();
+      //taLog.appendText("Disconnecting from the server...\n");
+      //doDisconnect();
    }
 
 } //TFTPClient

@@ -297,89 +297,100 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          byte[] data = new byte[512];
          
          DataInputStream dis = null; //make the streams
-         try {
-            dis = new DataInputStream(new FileInputStream(fileName)); //open the file
          
-            //read until end of file exception
-            while (true) {
+         boolean continueRRQ = true;
+         while(continueRRQ){
+            try {
+               dis = new DataInputStream(new FileInputStream(fileName)); //open the file
+            
+               //read until end of file exception
                data = new byte[512]; //set the data array to null
                for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();  //read in the data
                }
-               
-               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data)); //make the second packet
-               
-               blockNo++; // Increment block number
-               
-               //Sends the data packet and waits to receive the ACK Packet from the client
-               log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "   [1]" + data[1] + "   [2]" + data[2] + "   [3]" + data[3] + "   ...[" + (getLength(data) -3) + "]" + 
-                  data[getLength(data) -3 ] + "   [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "   [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ] + "   [" + getLength(data) + "]" + data[getLength(data)] + "\n");
                   
+               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data)); //make the second packet
+                  
+               blockNo++; // Increment block number
+                  
+                  //Sends the data packet and waits to receive the ACK Packet from the client
+               log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "   [1]" + data[1] + "   [2]" + data[2] + "   [3]" + data[3] + "   ...[" + (getLength(data) -3) + "]" + 
+                     data[getLength(data) -3 ] + "   [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "   [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ] + "   [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                     
                cSocket.send(secondPkt.build()); //send the second packet
-               //receiving the ACK Packet from the client
+                  //receiving the ACK Packet from the client
                byte[] holder = new byte[MAX_PACKET];
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-               // ** ISSUE HERE
                cSocket.receive(incoming);
                log("Received ACK Packet!" + "\n");
                readACKPacket(incoming, blockNo--);
-             
-            } //while
-            
-         } //try
-         catch(EOFException eofe) {
-            try {
-               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data));
-               dis.close(); //close the stream
-               //Sends the data packet and waits to receive the ACK Packet from the client
-               cSocket.send(secondPkt.build()); //send the second packet
-               //receiving the ACK Packet from the client
-                  
-               byte[] holder = new byte[MAX_PACKET];
-               DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-               cSocket.receive(incoming);
-               readACKPacket(incoming, blockNo--);
+               
+               if(getLength(data) < 512){
+                  continueRRQ = false;
+               }
+               
             } //try
+            catch(EOFException eofe) {
+               try {
+                  DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data));
+                  dis.close(); //close the stream
+                  //Sends the data packet and waits to receive the ACK Packet from the client
+                  cSocket.send(secondPkt.build()); //send the second packet
+                  //receiving the ACK Packet from the client
+                     
+                  byte[] holder = new byte[MAX_PACKET];
+                  DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+                  cSocket.receive(incoming);
+                  readACKPacket(incoming, blockNo--);
+                  if(getLength(data) < 512){
+                     continueRRQ = false;
+                  }
+               } //try
+               catch(IOException ioe) {
+                  try{
+                     log("IOException..." + ioe + "\n");
+                     ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
+                     cSocket.send(errorPkt.build());
+                     log("ERROR sent to client...\n");
+                     continueRRQ = false;
+                  }catch(IOException ioe1){
+                     System.out.println("1: " + ioe1);
+                  }
+               }
+               catch(Exception e) {
+                  try{
+                     log("Exception occurred..." + e + "\n");
+                     ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
+                     cSocket.send(errorPkt.build());
+                     log("ERROR sent to client...\n");
+                     continueRRQ = false;
+                  }catch(IOException ioe){
+                     System.out.println("2: " + ioe);
+                  }
+               }
+            } //catch
             catch(IOException ioe) {
                try{
-                  log("IOException..." + ioe + "\n");
+                  log("IOException occurred in doRRQ()..." + ioe + "\n");
                   ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
                   cSocket.send(errorPkt.build());
                   log("ERROR sent to client...\n");
+                  continueRRQ = false;
                }catch(IOException ioe1){
-                  System.out.println("1: " + ioe1);
+                  System.out.println("3: " + ioe1);
                }
-            }
-            catch(Exception e) {
+            }catch(Exception e) {
                try{
-                  log("Exception occurred..." + e + "\n");
+                  log("Exception occurred in doRRQ()..." + e + "\n");
                   ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
                   cSocket.send(errorPkt.build());
                   log("ERROR sent to client...\n");
+                  continueRRQ = false;
                }catch(IOException ioe){
-                  System.out.println("2: " + ioe);
+                  System.out.println("4: " + ioe);
                }
             }
-         } //catch
-         catch(IOException ioe) {
-            try{
-               log("IOException occurred in doRRQ()..." + ioe + "\n");
-               ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
-               cSocket.send(errorPkt.build());
-               log("ERROR sent to client...\n");
-            }catch(IOException ioe1){
-               System.out.println("3: " + ioe1);
-            }
-         }catch(Exception e) {
-            try{
-               log("Exception occurred in doRRQ()..." + e + "\n");
-               ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
-               cSocket.send(errorPkt.build());
-               log("ERROR sent to client...\n");
-            }catch(IOException ioe){
-               System.out.println("4: " + ioe);
-            }
-         }
+         } //while true
          
       } //doRRQ()
       
