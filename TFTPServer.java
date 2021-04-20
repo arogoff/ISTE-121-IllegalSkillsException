@@ -274,7 +274,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             return;
          }
       
-         log("Client completed!\n");
+         log("Client completed their task!\n");
       } //run()
       
       /** 
@@ -303,7 +303,8 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          boolean continueRRQ = true;
          while(continueRRQ) {
             try {
-               dis = new DataInputStream(new FileInputStream(fileName)); //open the file
+               File downFile = new File(dir.getText() + File.separator + fileName); //get the file in it's directory
+               dis = new DataInputStream(new FileInputStream(downFile)); //open the file
             
                //read until end of file exception
                data = new byte[512];                     //set the data array to null
