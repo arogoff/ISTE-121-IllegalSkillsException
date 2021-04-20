@@ -122,6 +122,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    public void handle(ActionEvent ae) {
       String label = ((Button)ae.getSource()).getText();
       
+      //depending on what button the user chooses...
       switch(label) {
          case "Choose Folder":
             doChooseFolder();
@@ -141,10 +142,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * updates tfSentence with the new directory that the user chose
    */
    public void doChooseFolder() {
-         // Directory Chooser setup
+      // Directory Chooser setup
       DirectoryChooser directoryChooser = new DirectoryChooser();
       directoryChooser.setInitialDirectory(new File(System.getProperty("user.dir"))); //get current working directory
-      File selectedDirectory = directoryChooser.showDialog(stage);
+      File selectedDirectory = directoryChooser.showDialog(stage);                    //show that directory
             
       if(selectedDirectory == null) {
          //No Directory selected
@@ -164,6 +165,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    */
    public void doConnect() {
       String ip = "";
+      //if the user does not put a IP in, default to localhost
       if(tfServerIP.getText().equals("")) {
          ip = "localhost";
       }
@@ -249,7 +251,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort();
             
-            if (opcode == ERROR) {
+            if (opcode == ERROR) { //opcode == 5
                System.out.println("ERROR PACKET RECIEVED");
                ERRORPacket errorPkt = new ERRORPacket();
                errorPkt.dissect(incoming);
@@ -259,7 +261,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                doDisconnect();
                return;
             }
-            else if (opcode == DATA) {
+            else if (opcode == DATA) { //opcode == 3
             
                DATAPacket dataPkt = new DATAPacket();
                dataPkt.dissect(incoming);
@@ -268,17 +270,17 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                int blockNo = dataPkt.getBlockNo();
                int port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
-               taLog.appendText(blockNo + " " + port + " " + dataLen + "\n");
+               taLog.appendText("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
                   
-                     // change socket to new port
-                     // socket.bind(new InetSocketAddress(#)); this is where we change the port
+               // change socket to new port
+               // socket.bind(new InetSocketAddress(#)); this is where we change the port
                   
                DataOutputStream dos = null;
                   
                try {
                   dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file
                      
-                     //read until end of file exception
+                  //read until end of file exception
                         
                   for (int i = 0; i < data.length; i++) { //for all the data
                      dos.writeByte(data[i]);  //read in the data
@@ -287,32 +289,34 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                         
-                  if(dataLen < 515)
+                  if(dataLen < 515) {
                      continueLoop = false;
+                  }
                         
                } //try
                catch(EOFException eofe) {
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                      
-                  if(dataLen < 515)
+                  if(dataLen < 515) {
                      continueLoop = false;
-               }
+                  }
+               } //catch
                
                j++;
                 
             } //else if opcode = DATA
+            
          } //while
          
       } // try
-      catch(SocketTimeoutException ste){
+      catch(SocketTimeoutException ste) {
          taLog.appendText("Download timed out waiting for DATA!\n");
       }
-      catch(IOException ioe) {}
-      //catch(Exception e){taLog.appendText("Exception... " + e + "\n");}
-   
-      //taLog.appendText("Disconnecting from the server...\n");
-      //doDisconnect();
-   }
+      catch(IOException ioe) {
+         taLog.appendText("IOException occurred in doDownload()..." + ioe);
+      }
+
+   } //doDownload()
 
 } //TFTPClient
