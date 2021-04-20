@@ -217,6 +217,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       // Since attributes are per-object items, each ClientThread has its OWN socket, unique to that client
       private DatagramSocket cSocket = null;
       private DatagramPacket firstPkt = null;
+      private int port = 0;
    
       // Constructor for ClientThread
       public UDPClientThread(DatagramPacket _pkt) {
@@ -225,12 +226,16 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             firstPkt = _pkt;
             // So - the new DatagramSocket is on a DIFFERENT port, chosen by the OS. If we use cSocket from now on, then port switching has been achieved.
             // in the parameter, put the new port
-            cSocket = new DatagramSocket(firstPkt.getPort());
+            port = firstPkt.getPort();
+            cSocket = new DatagramSocket();
+            System.out.println(port);
          }
          catch(SocketException se) {
-         
+            System.out.println("aa " + se);
          }
-         catch(Exception e){}
+         catch(Exception e){
+            System.out.println("bb");
+         }
       } //constructor
    
       // main program for a ClientThread
@@ -249,7 +254,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             switch(opcode) {
                case RRQ:
                   log("First Packet is a Read Request!, opcode: " + opcode + "\n");
+                  log("port: " + port + " " + "\n");
                   doRRQ(firstPkt);
+                  
                   break;
                case WRQ:
                   log("First Packet is a Write Request!, opcode: " + opcode + "\n");
@@ -296,24 +303,23 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             //read until end of file exception
             while (true) {
                data = new byte[512]; //set the data array to null
-               for (int i = 0; i < data.length; i++) { //for all the data
+               for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();  //read in the data
                }
                
-               System.out.println(cSocket.getPort();
-               DATAPacket secondPkt = new DATAPacket(toAddress, cSocket.getPort(), blockNo, data, getLength(data)); //make the second packet
+               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data)); //make the second packet
                
                blockNo++; // Increment block number
                
                //Sends the data packet and waits to receive the ACK Packet from the client
-               log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - " + data[0] + "   " + data[1] + "   " + data[2] + "   " + data[3] + "   ..." + 
-                  data[getLength(data) -3 ] + "   " + data[getLength(data) -2 ] + "   " + data[getLength(data) -1 ] + "   " + data[getLength(data)] + "\n");
+               log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "   [1]" + data[1] + "   [2]" + data[2] + "   [3]" + data[3] + "   ...[" + (getLength(data) -3) + "]" + 
+                  data[getLength(data) -3 ] + "   [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "   [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ] + "   [" + getLength(data) + "]" + data[getLength(data)] + "\n");
                   
                cSocket.send(secondPkt.build()); //send the second packet
-               
                //receiving the ACK Packet from the client
                byte[] holder = new byte[MAX_PACKET];
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+               // ** ISSUE HERE
                cSocket.receive(incoming);
                log("Received ACK Packet!" + "\n");
                readACKPacket(incoming, blockNo--);
@@ -323,7 +329,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          } //try
          catch(EOFException eofe) {
             try {
-               DATAPacket secondPkt = new DATAPacket(toAddress, cSocket.getPort(), blockNo, data, getLength(data));
+               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data));
                dis.close(); //close the stream
                //Sends the data packet and waits to receive the ACK Packet from the client
                cSocket.send(secondPkt.build()); //send the second packet
@@ -335,33 +341,47 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                readACKPacket(incoming, blockNo--);
             } //try
             catch(IOException ioe) {
-               log("IOException..." + ioe + "\n");
-               createERROR(toAddress, ioe.toString());
+               try{
+                  log("IOException..." + ioe + "\n");
+                  ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
+                  cSocket.send(errorPkt.build());
+                  log("ERROR sent to client...\n");
+               }catch(IOException ioe1){
+                  System.out.println("1: " + ioe1);
+               }
             }
             catch(Exception e) {
-               log("Exception occurred..." + e + "\n");
-               createERROR(toAddress, e.toString());
+               try{
+                  log("Exception occurred..." + e + "\n");
+                  ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
+                  cSocket.send(errorPkt.build());
+                  log("ERROR sent to client...\n");
+               }catch(IOException ioe){
+                  System.out.println("2: " + ioe);
+               }
             }
          } //catch
          catch(IOException ioe) {
-            log("IOException occurred in doRRQ()..." + ioe + "\n");
-            createERROR(toAddress, ioe.toString());
+            try{
+               log("IOException occurred in doRRQ()..." + ioe + "\n");
+               ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
+               cSocket.send(errorPkt.build());
+               log("ERROR sent to client...\n");
+            }catch(IOException ioe1){
+               System.out.println("3: " + ioe1);
+            }
          }catch(Exception e) {
-            log("Exception occurred in doRRQ()..." + e + "\n");
-            createERROR(toAddress, e.toString());
+            try{
+               log("Exception occurred in doRRQ()..." + e + "\n");
+               ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
+               cSocket.send(errorPkt.build());
+               log("ERROR sent to client...\n");
+            }catch(IOException ioe){
+               System.out.println("4: " + ioe);
+            }
          }
          
       } //doRRQ()
-      
-      public void createERROR(InetAddress toAddress, String msg){
-         try{
-            ERRORPacket errorPkt = new ERRORPacket(toAddress, cSocket.getLocalPort(), 0, msg);
-            cSocket.send(errorPkt.build());
-            log("ERROR Packet Sent\n");
-         }catch(IOException e){
-            System.out.println(e.toString());
-         }
-      }
       
       /** 
       * doWRQ()
