@@ -177,7 +177,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          socket = new DatagramSocket();
          //socket.connect(serverIP, TFTP_PORT);
          //System.out.println(socket.getPort() + "  " + socket.getLocalPort());
-         
+         System.out.println(socket.getLocalPort());
          socket.setSoTimeout(1000);
       } //try
       catch (Exception e) {
@@ -255,7 +255,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             System.out.println("2");
             
             if (opcode == ERROR) {
-            
+               System.out.println("ERROR PACKET RECIEVED");
+               ERRORPacket errorPkt = new ERRORPacket();
+               errorPkt.dissect(incoming);
+               
+               taLog.appendText("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
+               taLog.appendText("Disconnecting from the server...\n");
+               doDisconnect();
+               return;
             }
             else if (opcode == DATA) {
                DATAPacket dataPkt = new DATAPacket();
@@ -267,7 +274,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                int blockNo = dataPkt.getBlockNo();
                int port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
-               
+               taLog.appendText(blockNo + " " + port + " " + dataLen + "\n");
                System.out.println("4");
             
                // change socket to new port
@@ -281,12 +288,22 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   System.out.println("5");
                
                //read until end of file exception
-                  while (true) {
-                     for (int i = 0; i < data.length; i++) { //for all the data
-                        dos.writeByte(data[i]);  //read in the data
-                     }
-                     System.out.println("6");
+                  
+                  for (int i = 0; i < data.length; i++) { //for all the data
+                     dos.writeByte(data[i]);  //read in the data
                   }
+                  System.out.println("6");
+                     
+                  System.out.println("7");
+                  
+                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
+                  socket.send(ackPkt.build()); // PACKET 3
+               
+                  if(dataLen < 516)
+                     continueLoop = false;
+                     
+                  System.out.println("8");
+                  
                } //try
                catch(EOFException eofe) {
                
