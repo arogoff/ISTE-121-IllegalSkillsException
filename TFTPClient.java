@@ -227,12 +227,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          input.showAndWait();
          
          String fileName = input.getEditor().getText();
-         System.out.println("-1");
          
          //InetAddress _toAddress, int _port, String _fileName, String _mode
          RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
          socket.send(rrqPkt.build()); //PACKET 1
-         System.out.println("0");
          
          // LOOP START HERE
          boolean continueLoop = true;
@@ -245,14 +243,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             System.out.println("before receiving incoming packet");
             socket.receive(incoming); //PACKET 2
             
-            System.out.println("1");
-            
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
             ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort();
-            
-            System.out.println("2");
             
             if (opcode == ERROR) {
                System.out.println("ERROR PACKET RECIEVED");
@@ -267,15 +261,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             else if (opcode == DATA) {
                DATAPacket dataPkt = new DATAPacket();
                dataPkt.dissect(incoming);
-               
-               System.out.println("3");
             
                byte[] data = dataPkt.getData();
                int blockNo = dataPkt.getBlockNo();
                int port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
                taLog.appendText(blockNo + " " + port + " " + dataLen + "\n");
-               System.out.println("4");
             
                // change socket to new port
                // socket.bind(new InetSocketAddress(#)); this is where we change the port
@@ -283,59 +274,41 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                DataOutputStream dos = null;
             
                try {
-                  dos = new DataOutputStream(new FileOutputStream(fileName)); //open the file
-               
-                  System.out.println("5");
+                  dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file
                
                //read until end of file exception
                   
                   for (int i = 0; i < data.length; i++) { //for all the data
                      dos.writeByte(data[i]);  //read in the data
                   }
-                  System.out.println("6");
-                     
-                  System.out.println("7");
                   
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                
                   if(dataLen < 516)
                      continueLoop = false;
-                     
-                  System.out.println("8");
                   
                } //try
                catch(EOFException eofe) {
-               
-                  System.out.println("7");
-                  
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                
                   if(dataLen < 516)
                      continueLoop = false;
-                     
-                  System.out.println("8");
                }
                
             } //else if opcode = DATA
-            
-            System.out.println("9");
-            
          } //while
          
       } // try
       catch(SocketTimeoutException ste){
          taLog.appendText("Download timed out waiting for DATA!\n");
-         System.out.println("a");
       }
       catch(IOException ioe) {}
       //catch(Exception e){taLog.appendText("Exception... " + e + "\n");}
    
       taLog.appendText("Disconnecting from the server...\n");
       doDisconnect();
-      
-      System.out.println("b");
    }
 
 } //TFTPClient
