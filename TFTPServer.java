@@ -225,7 +225,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             firstPkt = _pkt;
             // So - the new DatagramSocket is on a DIFFERENT port, chosen by the OS. If we use cSocket from now on, then port switching has been achieved.
             // in the parameter, put the new port
-            cSocket = new DatagramSocket(34001);
+            cSocket = new DatagramSocket(firstPkt.getPort());
          }
          catch(SocketException se) {
          
@@ -300,6 +300,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   data[i] = dis.readByte();  //read in the data
                }
                
+               System.out.println(cSocket.getPort();
                DATAPacket secondPkt = new DATAPacket(toAddress, cSocket.getPort(), blockNo, data, getLength(data)); //make the second packet
                
                blockNo++; // Increment block number
