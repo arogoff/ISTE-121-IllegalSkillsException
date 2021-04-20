@@ -177,15 +177,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          serverIP = InetAddress.getByName(ip);
       
          socket = new DatagramSocket();
-         //socket.connect(serverIP, TFTP_PORT);
-         //System.out.println(socket.getPort() + "  " + socket.getLocalPort());
-         System.out.println(socket.getLocalPort());
          socket.setSoTimeout(1000);
       } //try
       catch (Exception e) {
          taLog.appendText("Connection failed..." + e + "\n");
          return;
-      } 
+      } // catch
    
    } //doConnect()
    
