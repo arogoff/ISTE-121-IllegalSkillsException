@@ -613,6 +613,22 @@ class ERRORPacket extends Packets {
    
    }// dissect
    
+   /** getErrorNo() method
+    *
+    * @return returns errorNo
+    */
+   public int getErrorNo() {
+      return errorNo;
+   }
+   
+   /** getErrorMsg() method
+    *
+    * @return returns errorMsg
+    */
+   public String getErrorMsg() {
+      return errorMsg;
+   }
+   
    /** getOpCode() method
     *
     * @return returns ACK: 4
