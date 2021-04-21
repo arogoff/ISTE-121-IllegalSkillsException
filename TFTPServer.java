@@ -299,15 +299,19 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          byte[] data = new byte[512];
          
          DataInputStream dis = null; //make the streams
+         try{
+            File downFile = new File(dir.getText() + File.separator + fileName); //get the file in it's directory
+            dis = new DataInputStream(new FileInputStream(downFile)); //open the file
+         }catch(IOException ioe){
+            System.out.println("ERROR!!!!! " + ioe);
+         }
          
          boolean continueRRQ = true;
          while(continueRRQ) {
             try {
-               File downFile = new File(dir.getText() + File.separator + fileName); //get the file in it's directory
-               dis = new DataInputStream(new FileInputStream(downFile)); //open the file
-            
                //read until end of file exception
-               data = new byte[512];                     //set the data array to null
+               data = new byte[512];
+               System.out.println("new byte[] created");                     //set the data array to null
                for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();              //read in the data
                }
@@ -323,6 +327,8 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                      
                cSocket.send(secondPkt.build()); //send the second packet
                
+               System.out.println(getLength(data));
+               
                //receiving the ACK Packet from the client
                byte[] holder = new byte[MAX_PACKET];
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
@@ -330,7 +336,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                log("Received ACK Packet!" + "\n");
                readACKPacket(incoming, blockNo--);
                
-               if(getLength(data) < 512) {
+               if(getLength(data) < 511) {
                   continueRRQ = false;
                }
                
@@ -347,7 +353,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                   cSocket.receive(incoming); //receive the incoming packet
                   readACKPacket(incoming, blockNo--);
-                  if(getLength(data) < 512){
+                  if(getLength(data) < 511){
                      continueRRQ = false;
                   }
                } //try
