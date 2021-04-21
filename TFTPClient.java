@@ -144,7 +144,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    public void doChooseFolder() {
       // Directory Chooser setup
       DirectoryChooser directoryChooser = new DirectoryChooser();
-      directoryChooser.setInitialDirectory(new File(System.getProperty("user.dir"))); //get current working directory
+      directoryChooser.setInitialDirectory(new File(tfDirectory.getText())); //get current working directory
       File selectedDirectory = directoryChooser.showDialog(stage);                    //show that directory
             
       if(selectedDirectory == null) {
@@ -244,13 +244,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          if (placeToSave == null) {
             taLog.appendText("You did not choose a place to save... choosing default directory.\n");
             dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file, clear it's contents
-            dos.writeUTF("");
-            dos = new DataOutputStream(new FileOutputStream(fileName, true)); //open the file for appending now
          }
          else {
             dos = new DataOutputStream(new FileOutputStream(placeToSave, false)); //open the file, clear it's contents
-            dos.writeUTF("");
-            dos = new DataOutputStream(new FileOutputStream(placeToSave, true)); //open the file for appending now
          }
          
          //InetAddress _toAddress, int _port, String _fileName, String _mode
