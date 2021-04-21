@@ -360,6 +360,8 @@ class DATAPacket extends Packets {
             data[i] = dis.readByte();
          }
          
+         dataLen = data.length;
+         
          dis.close();
       } //try
       catch(Exception e) {
