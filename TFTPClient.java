@@ -297,9 +297,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   for (int i = 0; i < data.length; i++) { //for all the data
                      dos.writeByte(data[i]);  //write the data
                   }
-                           
+                  
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
+                  taLog.appendText("Sent ACK Packet! Blk#: " + blockNo + "\n");
                         
                   if(dataLen < 511) {
                      continueLoop = false;
