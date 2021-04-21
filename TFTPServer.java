@@ -85,9 +85,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       
       // Show window
       scene = new Scene(root, 525, 250);
-      stage.setScene(scene);
       stage.setX(600);
       stage.setY(250);
+      stage.setScene(scene);
       stage.show();      
    }
       
@@ -113,9 +113,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    * changes the TextField directory to whatever the uses chooses it to be
    */
    public void doChooseFolder() {
-    // Directory Chooser setup
+      // Directory Chooser setup
       DirectoryChooser directoryChooser = new DirectoryChooser();
-      directoryChooser.setInitialDirectory(new File(System.getProperty("user.dir"))); //get current working directory
+      directoryChooser.setInitialDirectory(new File(dir.getText())); //get current working directory
       File selectedDirectory = directoryChooser.showDialog(stage);
             
       if(selectedDirectory == null) {
@@ -304,7 +304,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             dis = new DataInputStream(new FileInputStream(downFile)); //open the file
          }
          catch(IOException ioe) {
-            log("IOException occurred in doRRQ()... " + ioe);
+            log("IOException occurred in doRRQ()... " + ioe + "\n");
          }
          
          boolean continueRRQ = true;
