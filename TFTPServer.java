@@ -228,7 +228,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             // in the parameter, put the new port
             port = firstPkt.getPort();
             cSocket = new DatagramSocket();
-            log("New port: " + port);
+            log("New port: " + port + "\n");
          }
          catch(SocketException se) {
             log("SocketException in UDPClientThread... " + se + "\n");
@@ -332,7 +332,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                cSocket.receive(incoming);
                log("Received ACK Packet!" + "\n");
-               readACKPacket(incoming, blockNo--);
+               readACKPacket(incoming, blockNo-1);
                
                if(getLength(data) < 511) {
                   continueRRQ = false;
@@ -344,16 +344,26 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data));
                   dis.close(); //close the stream
                   //Sends the data packet and waits to receive the ACK Packet from the client
-                  log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
+                  if (getLength(data) >= 8) {
+                     log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                      "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
                      + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                  }
+                  else if (getLength(data) >= 3) {
+                     log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
+                  }
+                  else {
+                     log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "\n");  
+                  }
+    
                   cSocket.send(secondPkt.build()); //send the second packet
-                  //receiving the ACK Packet from the client
-                     
+                  
+                  //receiving the ACK Packet from the client 
                   byte[] holder = new byte[MAX_PACKET];
                   DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                   cSocket.receive(incoming); //receive the incoming packet
-                  readACKPacket(incoming, blockNo--);
+                  log("Received ACK Packet!" + "\n");
+                  readACKPacket(incoming, blockNo);
                   if(getLength(data) < 511) {
                      continueRRQ = false;
                   }
@@ -367,7 +377,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                      continueRRQ = false;
                   }
                   catch(IOException ioe1) {
-                     log("IOException 1 in doRRQ(): " + ioe1);
+                     log("IOException 1 in doRRQ(): " + ioe1 + "\n");
                   }
                } //catch 2
                catch(Exception e) {
@@ -379,7 +389,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                      continueRRQ = false;
                   }
                   catch(IOException ioe) {
-                     log("IOException 2 in doRRQ(): " + ioe);
+                     log("IOException 2 in doRRQ(): " + ioe + "\n");
                   } //catch 3
                   
                } //catch 2
@@ -394,7 +404,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   continueRRQ = false;
                }
                catch(IOException ioe1) {
-                  log("IOException 3 in doRRQ(): " + ioe1);
+                  log("IOException 3 in doRRQ(): " + ioe1 + "\n");
                }
             } //catch
             catch(Exception e) {
@@ -406,7 +416,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   continueRRQ = false;
                }
                catch(IOException ioe) {
-                  log("4 in doRRQ(): " + ioe);
+                  log("4 in doRRQ(): " + ioe + "\n");
                }
             } //catch
             
@@ -451,7 +461,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          
          if (ackPkt.getOpCode() == ACK && ackPkt.getBlockNo() == blockNo) {
             //all good
-            log("readACKPacket()... ACK!, all good\n");
+            log("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n");
          }
       } //readACKPacket()
       
