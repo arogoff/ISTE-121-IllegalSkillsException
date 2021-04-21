@@ -233,20 +233,36 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          String fileName = input.getEditor().getText();
          selectedFile = fileName;
          
+         //make a filechooser for saving
+         FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
+         chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
+         chooserWindow.setTitle("Choose where to save");
+         chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
+         File placeToSave = chooserWindow.showSaveDialog(stage); //make the save dialog appear
+         
+         DataOutputStream dos = null;
+         if (placeToSave == null) {
+            taLog.appendText("You did not choose a place to save... choosing default directory.\n");
+            dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file, clear it's contents
+            dos.writeUTF("");
+            dos = new DataOutputStream(new FileOutputStream(fileName, true)); //open the file for appending now
+         }
+         else {
+            dos = new DataOutputStream(new FileOutputStream(placeToSave, false)); //open the file, clear it's contents
+            dos.writeUTF("");
+            dos = new DataOutputStream(new FileOutputStream(placeToSave, true)); //open the file for appending now
+         }
+         
          //InetAddress _toAddress, int _port, String _fileName, String _mode
          RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
          socket.send(rrqPkt.build()); //PACKET 1
          
          // LOOP START HERE
          boolean continueLoop = true;
-         int j = 0;
          while(continueLoop) {
-            System.out.println("loop iteration: " + j);
-            System.out.println("beginning from loop");
             //receiving the DATA Packet from the Server
             byte[] holder = new byte[MAX_PACKET];
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-            System.out.println("before receiving incoming packet");
             socket.receive(incoming); //PACKET 2
             
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
@@ -255,7 +271,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             int opcode = dis.readShort();
             
             if (opcode == ERROR) { //opcode == 5
-               System.out.println("ERROR PACKET RECIEVED");
                ERRORPacket errorPkt = new ERRORPacket();
                errorPkt.dissect(incoming);
                
@@ -277,24 +292,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                // change socket to new port
                // socket.bind(new InetSocketAddress(#)); this is where we change the port
                   
-               DataOutputStream dos = null;
-                  
                try {
-                  //make a filechooser for saving
-                  FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
-                  chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
-                  chooserWindow.setTitle("Choose where to save");
-                  chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
-               
-                  File placeToSave = chooserWindow.showSaveDialog(stage); //save dialog
-                  if (placeToSave == null) {
-                     taLog.appendText("You did not choose a place to save... choosing default directory.\n");
-                     dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file
-                  }
-                  else {
-                     dos = new DataOutputStream(new FileOutputStream(placeToSave, false)); //open the file
-                  }
-                  
                   //write until end of file exception
                   for (int i = 0; i < data.length; i++) { //for all the data
                      dos.writeByte(data[i]);  //write the data
@@ -306,8 +304,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   if(dataLen < 511) {
                      continueLoop = false;
                   }
-                  
-                  System.out.println("Length of data[]" + dataLen);
                         
                } //try
                catch(EOFException eofe) {
@@ -318,10 +314,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      continueLoop = false;
                   }
                   
-                  System.out.println("Length of data[]" + dataLen);
-               } //catch
-               
-               j++;
+               } //catch        
                 
             } //else if opcode = DATA
             
@@ -339,7 +332,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }
       
       taLog.appendText(selectedFile + " has finished downloading! \n");
-      System.out.println("all done");
       
    } //doDownload()
 
