@@ -194,6 +194,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    public void doDisconnect() {
       try {
          socket.close();
+         taLog.appendText("Disconnecting from the server...\n");
       }
       catch(Exception e){}
       
@@ -259,7 +260,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                errorPkt.dissect(incoming);
                
                taLog.appendText("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
-               taLog.appendText("Disconnecting from the server...\n");
                doDisconnect();
                return;
             }
@@ -303,18 +303,22 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                         
-                  if(dataLen < 515) {
+                  if(dataLen < 511) {
                      continueLoop = false;
                   }
+                  
+                  System.out.println("Length of data[]" + dataLen);
                         
                } //try
                catch(EOFException eofe) {
                   ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
                   socket.send(ackPkt.build()); // PACKET 3
                      
-                  if(dataLen < 515) {
+                  if(dataLen < 511) {
                      continueLoop = false;
                   }
+                  
+                  System.out.println("Length of data[]" + dataLen);
                } //catch
                
                j++;
@@ -326,6 +330,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       } // try
       catch(SocketTimeoutException ste) {
          taLog.appendText("Download timed out waiting for DATA!\n");
+         doDisconnect();
          return;
       }
       catch(IOException ioe) {
@@ -334,6 +339,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }
       
       taLog.appendText(selectedFile + " has finished downloading! \n");
+      System.out.println("all done");
       
    } //doDownload()
 
