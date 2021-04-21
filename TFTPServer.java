@@ -228,7 +228,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             // in the parameter, put the new port
             port = firstPkt.getPort();
             cSocket = new DatagramSocket();
-            System.out.println(port);
+            log("New port: " + port);
          }
          catch(SocketException se) {
             log("SocketException in UDPClientThread... " + se + "\n");
@@ -299,19 +299,19 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          byte[] data = new byte[512];
          
          DataInputStream dis = null; //make the streams
-         try{
+         try {
             File downFile = new File(dir.getText() + File.separator + fileName); //get the file in it's directory
             dis = new DataInputStream(new FileInputStream(downFile)); //open the file
-         }catch(IOException ioe){
-            System.out.println("ERROR!!!!! " + ioe);
+         }
+         catch(IOException ioe) {
+            log("IOException occurred in doRRQ()... " + ioe);
          }
          
          boolean continueRRQ = true;
          while(continueRRQ) {
             try {
                //read until end of file exception
-               data = new byte[512];
-               System.out.println("new byte[] created");                     //set the data array to null
+               data = new byte[512];                   //set the data array to null
                for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();              //read in the data
                }
@@ -326,8 +326,6 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                      + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
                      
                cSocket.send(secondPkt.build()); //send the second packet
-               
-               System.out.println(getLength(data));
                
                //receiving the ACK Packet from the client
                byte[] holder = new byte[MAX_PACKET];
@@ -346,6 +344,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data));
                   dis.close(); //close the stream
                   //Sends the data packet and waits to receive the ACK Packet from the client
+                  log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
+                     "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
+                     + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
                   cSocket.send(secondPkt.build()); //send the second packet
                   //receiving the ACK Packet from the client
                      
@@ -353,7 +354,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                   cSocket.receive(incoming); //receive the incoming packet
                   readACKPacket(incoming, blockNo--);
-                  if(getLength(data) < 511){
+                  if(getLength(data) < 511) {
                      continueRRQ = false;
                   }
                } //try
