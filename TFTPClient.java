@@ -207,8 +207,189 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * uploads a file to the server using the TFTP protocol
    */
    public void doUpload() {
-   
+      String fileName = "";
+      DataInputStream dis = null;
+      int blockNo = 0;
+      byte[] data = new byte[512];
+      int port = -1;
+      boolean continueLoop = true;
+      
+      try{
+         // Connect to server
+         doConnect();
+         
+         //make a filechooser for choosing file to upload
+         FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
+         chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
+         chooserWindow.setTitle("Choose the Local File to Upload");
+         chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
+         File fileToUpload = chooserWindow.showSaveDialog(stage); //make the save dialog appear
+         
+         fileName = fileToUpload.getName();
+         
+         if (fileToUpload == null) {
+            taLog.appendText("You did not choose a file to upload... canceling upload.\n");
+            doDisconnect();
+         }
+         else {
+            dis = new DataInputStream(new FileInputStream(fileToUpload)); //open the file, clear it's contents
+         }
+         
+         //InetAddress _toAddress, int _port, String _fileName, String _mode
+         WRQPacket wrqPkt = new WRQPacket(serverIP, TFTP_PORT, fileName, "octet");
+         socket.send(wrqPkt.build()); //PACKET 1
+         
+         //LOOP START HERE
+         while(continueLoop) {
+            byte[] holder = new byte[MAX_PACKET];
+            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+            socket.receive(incoming); //PACKET 2
+            
+            port = incoming.getPort();
+            
+            if(readACKPacket(incoming, blockNo)){ // if true then correct
+               data = new byte[512]; // clear byte[] 
+               
+               for (int i = 0; i < data.length-1; i++) { //for all the data
+                  data[i] = dis.readByte();              //read in the data
+               }
+               
+               blockNo++; // Increment block number
+               
+               DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, getLength(data)); //make the second packet
+                  
+               //Sends the data packet and waits to receive the ACK Packet from the client
+               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
+                  "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
+                     + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                     
+               socket.send(secondPkt.build()); //send the second packet
+               
+               if(getLength(data) < 511) {
+                  continueLoop = false;
+               }
+            }
+         }
+      }catch(SocketTimeoutException ste) {
+         taLog.appendText("Download timed out waiting for ACK!\n");
+         doDisconnect();
+         return;
+      }catch(EOFException eofe){
+         try {
+            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo++, data, getLength(data));
+            dis.close(); //close the stream
+                  //Sends the data packet and waits to receive the ACK Packet from the client
+            if (getLength(data) >= 8) {
+               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
+                        "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
+                        + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+            }
+            else if (getLength(data) >= 3) {
+               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
+            }
+            else {
+               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "\n");  
+            }
+               
+            socket.send(secondPkt.build()); //send the second packet
+                  
+                  //receiving the ACK Packet from the client 
+            byte[] holder = new byte[MAX_PACKET];
+            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+            socket.receive(incoming); //receive the incoming packet
+            taLog.appendText("Received ACK Packet!" + "\n");
+            readACKPacket(incoming, blockNo);
+            if(getLength(data) < 511) {
+               continueLoop = false;
+            }
+         } //try
+         catch(IOException ioe) {
+            try {
+               taLog.appendText("IOException..." + ioe + "\n");
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, ioe.toString());
+               socket.send(errorPkt.build());
+               taLog.appendText("ERROR sent to client...\n");
+               continueLoop = false;
+            }
+            catch(IOException ioe1) {
+               taLog.appendText("IOException 1 in doRRQ(): " + ioe1 + "\n");
+            }
+         } //catch 2
+         catch(Exception e) {
+            try {
+               taLog.appendText("Exception occurred..." + e + "\n");
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, e.toString());
+               socket.send(errorPkt.build());
+               taLog.appendText("ERROR sent to client...\n");
+               continueLoop = false;
+            }
+            catch(IOException ioe) {
+               taLog.appendText("IOException 2 in doRRQ(): " + ioe + "\n");
+            } //catch 3
+                  
+         } //catch 2
+      
+      }catch(FileNotFoundException fnfe){
+         System.out.println(fnfe.toString());
+      }catch(IOException ioe){
+         System.out.println(ioe.toString());
+      }
    }
+   
+   /** 
+      * readACKPacket()
+      * For reading the ACKPackets
+      * @param pkt of DatagramPacket
+      * @param blockNo the block number
+      */
+   public boolean readACKPacket(DatagramPacket pkt, int blockNo) {
+      try{
+         ByteArrayInputStream bais = new ByteArrayInputStream(pkt.getData(), pkt.getOffset(), pkt.getLength());
+         DataInputStream dis = new DataInputStream(bais);
+         int opcode = dis.readShort();
+            
+         if (opcode == ACK) {
+            ACKPacket ackPkt = new ACKPacket();
+            ackPkt.dissect(pkt);
+               
+            if(ackPkt.getBlockNo() == blockNo){
+               taLog.appendText("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n"); //all good
+               return true;
+            }
+               
+            return false;
+         }else if (opcode == ERROR){
+            ERRORPacket errorPkt = new ERRORPacket();
+            errorPkt.dissect(pkt);
+               
+            taLog.appendText("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
+            doDisconnect();
+            return false;
+         }
+      }catch(Exception e){
+         taLog.appendText("Error occured in readACKPacket(): " + e + "\n");
+         return false;
+      }
+         
+      return false;
+   } //readACKPacket()
+      
+      /** 
+      * getLength()
+      * Length of data excluding any null values
+      * @param byte[] data
+      * @return the count of data of bytes that are not null
+      */
+   public int getLength(byte[] data) {
+      int count = 0;
+      for(byte element : data) {
+         if (element != 0) {
+            count++;
+         }
+      }
+      return count;
+   } //getLength()
+
    
    /** 
    * doDownload()
