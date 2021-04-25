@@ -346,8 +346,8 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   //Sends the data packet and waits to receive the ACK Packet from the client
                   if (getLength(data) >= 8) {
                      log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
-                     "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
-                     + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                        "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
+                        + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
                   }
                   else if (getLength(data) >= 3) {
                      log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
@@ -355,7 +355,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   else {
                      log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "\n");  
                   }
-    
+               
                   cSocket.send(secondPkt.build()); //send the second packet
                   
                   //receiving the ACK Packet from the client 
@@ -430,7 +430,85 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       * when given a write request from a client, uses TFTP protocol
       */
       public void doWRQ(DatagramPacket firstPkt) {
+         InetAddress toAddress = firstPkt.getAddress(); //get the address on a different port than 69
          
+         WRQPacket wrqPkt = new WRQPacket();
+         wrqPkt.dissect(firstPkt);
+         
+         String fileName = wrqPkt.getFileName();
+         int blockNo = 0;
+         int dataLen = 512;
+         
+         DataOutputStream dos = null;
+         try{
+            dos = new DataOutputStream(new FileOutputStream(wrqPkt.getFileName()));
+         }catch(IOException ioe){
+            System.out.println(ioe.toString());
+         }
+         
+         boolean continueWRQ = true;
+         while(continueWRQ){
+            try{
+               ACKPacket ackPkt = new ACKPacket(toAddress, port, blockNo);
+               cSocket.send(ackPkt.build()); // PACKET 3
+               log("Sent ACK Packet! Blk#: " + blockNo + "\n");
+               
+               if(dataLen < 511) {
+                  continueWRQ = false;
+                  return;
+               }
+               
+               byte[] holder = new byte[MAX_PACKET];
+               DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+               cSocket.receive(incoming); //receive the incoming packet
+               
+               // Figure out if the incoming datagrampacket is RRQ or WRQ packet
+               ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
+               DataInputStream dis = new DataInputStream(bais);
+               int opcode = dis.readShort();
+            
+               if (opcode == ERROR) { //opcode == 5
+                  ERRORPacket errorPkt = new ERRORPacket();
+                  errorPkt.dissect(incoming);
+               
+                  log("Error recieved from client:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
+                  return;
+               }
+               else if (opcode == DATA) { //opcode == 3
+               
+                  DATAPacket dataPkt = new DATAPacket();
+                  dataPkt.dissect(incoming);
+                  
+                  byte[] data = dataPkt.getData();
+                  blockNo = dataPkt.getBlockNo();
+                  int port = dataPkt.getPort();
+                  dataLen = dataPkt.getDataLen();
+                  log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
+                  
+                  try {
+                  //write until end of file exception
+                     for (int i = 0; i < data.length; i++) { //for all the data
+                        dos.writeByte(data[i]);  //write the data
+                     }
+                        
+                  } //try
+                  catch(EOFException eofe) {
+                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo);
+                     cSocket.send(ackPkt1.build()); // PACKET 3
+                     
+                     if(dataLen < 511) {
+                        continueWRQ = false;
+                     }
+                  
+                  } //catch        
+                
+               } //else if opcode = DATA
+            
+               
+               
+            }catch(IOException ioe){}
+         }
+      
       }
       
       /** 
