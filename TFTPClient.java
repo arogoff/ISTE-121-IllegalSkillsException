@@ -223,7 +223,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
          chooserWindow.setTitle("Choose the Local File to Upload");
          chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
-         File fileToUpload = chooserWindow.showSaveDialog(stage); //make the save dialog appear
+         File fileToUpload = chooserWindow.showOpenDialog(stage); //make the save dialog appear
          
          TextInputDialog input = new TextInputDialog();
          input.setHeaderText("Enter the name to file on the server for saving the upload");
@@ -237,6 +237,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          if (fileToUpload == null) {
             taLog.appendText("You did not choose a file to upload... canceling upload.\n");
             doDisconnect();
+            return;
          }
          else {
             dis = new DataInputStream(new FileInputStream(fileToUpload)); //open the file, clear it's contents
@@ -266,7 +267,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, getLength(data)); //make the second packet
                   
                //Sends the data packet and waits to receive the ACK Packet from the client
-               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
+               taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                   "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
                      + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
                      
@@ -287,15 +288,15 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             dis.close(); //close the stream
                   //Sends the data packet and waits to receive the ACK Packet from the client
             if (getLength(data) >= 8) {
-               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
+               taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                         "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
                         + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
             }
             else if (getLength(data) >= 3) {
-               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
+               taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
             }
             else {
-               taLog.appendText("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "\n");  
+               taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "\n");  
             }
                
             socket.send(secondPkt.build()); //send the second packet
@@ -341,6 +342,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }catch(IOException ioe){
          System.out.println(ioe.toString());
       }
+      
+      doDisconnect();
    }
    
    /** 
