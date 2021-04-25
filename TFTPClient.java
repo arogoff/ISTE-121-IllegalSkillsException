@@ -225,7 +225,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
          File fileToUpload = chooserWindow.showSaveDialog(stage); //make the save dialog appear
          
-         fileName = fileToUpload.getName();
+         TextInputDialog input = new TextInputDialog();
+         input.setHeaderText("Enter the name to file on the server for saving the upload");
+         input.setTitle("Remote Name");
+         input.setX(1200); //set the textinputdialog ontop of the client
+         input.setY(250);
+         input.showAndWait();
+         
+         fileName = input.getEditor().getText();
          
          if (fileToUpload == null) {
             taLog.appendText("You did not choose a file to upload... canceling upload.\n");
