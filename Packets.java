@@ -263,6 +263,15 @@ class WRQPacket extends Packets {
       return WRQ;
    }
    
+   /** getFileName() method
+    *
+    * Get the name of the file for this packet
+    * @return get the fileName from the Packet
+    */
+   public String getFileName() {
+      return fileName;
+   }
+   
 } //class WRQPacket
 
 
