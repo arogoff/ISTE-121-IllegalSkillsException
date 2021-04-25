@@ -426,7 +426,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
          chooserWindow.setTitle("Choose where to save");
          chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
-         File placeToSave = chooserWindow.showSaveDialog(stage); //make the save dialog appear
+         File placeToSave = chooserWindow.showOpenDialog(stage); //make the save dialog appear
          
          DataOutputStream dos = null;
          if (placeToSave == null) {
