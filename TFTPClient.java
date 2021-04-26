@@ -277,7 +277,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      
                socket.send(secondPkt.build()); //send the second packet
                
-               if(size < 512) {
+               if(size < 511) {
                   continueLoop = false;
                }
             }
@@ -313,7 +313,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             socket.receive(incoming); //receive the incoming packet
             // **
             readACKPacket(incoming, blockNo);
-            if(size < 512) {
+            if(size < 511) {
                continueLoop = false;
             }
          } //try
@@ -391,22 +391,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          
       return false;
    } //readACKPacket()
-      
-      /** 
-      * getLength()
-      * Length of data excluding any null values
-      * @param byte[] data
-      * @return the count of data of bytes that are not null
-      */
-   public int getLength(byte[] data) {
-      int count = 0;
-      for(byte element : data) {
-         if (element != 0) {
-            count++;
-         }
-      }
-      return count;
-   } //getLength()
 
    
    /** 
