@@ -441,7 +441,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          
          DataOutputStream dos = null;
          try{
-            dos = new DataOutputStream(new FileOutputStream(wrqPkt.getFileName()));
+            dos = new DataOutputStream(new FileOutputStream(dir.getText() + File.separator + wrqPkt.getFileName())); //dir.getText() + File.separator + fileName
          }catch(IOException ioe){
             System.out.println(ioe.toString());
          }
@@ -493,7 +493,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                         
                   } //try
                   catch(EOFException eofe) {
-                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo);
+                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo++);
                      cSocket.send(ackPkt1.build()); // PACKET 3
                      
                      if(dataLen < 511) {
