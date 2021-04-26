@@ -7,6 +7,8 @@ import javafx.scene.text.*;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 import javafx.geometry.*;
+import java.awt.Dimension;
+import java.awt.Toolkit;
 
 import java.net.*;
 import java.io.*;
@@ -39,6 +41,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    // Other stuff
    UDPServerThread serverThread = null;
    DatagramSocket mainSocket = null; //main socket
+   
+   // Screen size
+   private Dimension size = Toolkit.getDefaultToolkit().getScreenSize(); // get screen size
    
    /**
     * main program
@@ -84,9 +89,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       dir.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
       
       // Show window
+      stage.setX((size.width / 2 - (525 / 2)) - 210); //offset the screen by 210
+      stage.setY((size.height / 2 - (250 / 2)));
       scene = new Scene(root, 525, 250);
-      stage.setX(600);
-      stage.setY(250);
       stage.setScene(scene);
       stage.show();      
    }
@@ -119,8 +124,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       File selectedDirectory = directoryChooser.showDialog(stage);
             
       if(selectedDirectory == null) {
-         log("No directory chosen\n");
-         //No Directory selected
+         log("No directory chosen\n"); //No Directory selected
       }
       else {
          dir.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
@@ -250,23 +254,24 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
             ByteArrayInputStream bais = new ByteArrayInputStream(firstPkt.getData(), firstPkt.getOffset(), firstPkt.getLength());
             DataInputStream dis = new DataInputStream(bais);
+            
             int opcode = dis.readShort(); //read the opcode
             switch(opcode) {
             
-               case RRQ:
+               case RRQ: //read request
                   log("First Packet is a Read Request!, opcode: " + opcode + "\n");
                   log("Using Port: " + port + " " + "\n");
                   doRRQ(firstPkt);
                   break;
                   
-               case WRQ:
+               case WRQ: //write request
                   log("First Packet is a Write Request!, opcode: " + opcode + "\n");
                   doWRQ(firstPkt);
                   break;
                   
                default:
                   break;
-            }
+            } //switch
          } //try
          catch(IOException ioe) {
             log("IO Exception (3): " + ioe + "\n");
@@ -286,45 +291,44 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          //firstPkt.dissect(); //dissect the packet
          //cSocket.bind(new InetSocketAddress(#)); this is where we change the port
          
-         // Attributes
-         
          // Gets the IP address of the machine that sent the packet
-         InetAddress toAddress = firstPkt.getAddress(); //get the address on a different port than 69
+         InetAddress toAddress = firstPkt.getAddress(); // get the address on a different port than 69
          
+         // Create an RRQPacket & Dissect the first packet
          RRQPacket rrqPkt = new RRQPacket();
          rrqPkt.dissect(firstPkt);
          
-         String fileName = rrqPkt.getFileName();
+         // Attributes:
+         String fileName = rrqPkt.getFileName(); // get the file name
          int blockNo = 1;
          byte[] data = new byte[512];
-         
          int size = 0;
          
-         DataInputStream dis = null; //make the streams
+         DataInputStream dis = null; // make the streams
          try {
-            File downFile = new File(dir.getText() + File.separator + fileName); //get the file in it's directory
-            dis = new DataInputStream(new FileInputStream(downFile)); //open the file
+            File downFile = new File(dir.getText() + File.separator + fileName); // get the file in it's directory
+            dis = new DataInputStream(new FileInputStream(downFile));            // open the file
          }
          catch(IOException ioe) {
             log("IOException occurred in doRRQ()... " + ioe + "\n");
          }
          
-         boolean continueRRQ = true;
+         boolean continueRRQ = true; // for loop control
          while(continueRRQ) {
             size = 0;
             try {
                //read until end of file exception
-               data = new byte[512];                   //set the data array to null
-               for (int i = 0; i < data.length-1; i++) { //for all the data
-                  data[i] = dis.readByte();              //read in the data
-                  size++;
+               data = new byte[512];                     // set the data array to null
+               for (int i = 0; i < data.length-1; i++) { // for all the data
+                  data[i] = dis.readByte();              // read in the data
+                  size++;                                // increment the size
                }
                   
                DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, size); //make the second packet
                   
                blockNo++; // Increment block number
                   
-               //Sends the data packet and waits to receive the ACK Packet from the client
+               // Sends the data packet and waits to receive the ACK Packet from the client
                log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                   "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
                      + "  [" + size + "]" + data[size] + "\n");
@@ -333,20 +337,22 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                
                //receiving the ACK Packet from the client
                byte[] holder = new byte[MAX_PACKET];
-               DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-               cSocket.receive(incoming);
-               log("Received ACK Packet!" + "\n");
-               readACKPacket(incoming, blockNo-1);
+               DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // make the incoming datagram packet
+               cSocket.receive(incoming);                                        // receive the ACK Packet
+               log("Received ACK Packet!" + "\n");                               // log the ack packet
+               readACKPacket(incoming, blockNo-1);                               // read the ACKPacket
                
                if(size < 511) {
-                  continueRRQ = false;
+                  continueRRQ = false; //if the data is less then 511, don't go through the loop anymore
                }
                
             } //try
             catch(EOFException eofe) {
+               // INSIDE THE END OF FILE EXCEPTION
                try {
                   DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, size);
                   dis.close(); //close the stream
+                  
                   //Sends the data packet and waits to receive the ACK Packet from the client
                   if (size >= 8) {
                      log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
@@ -364,21 +370,21 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   
                   //receiving the ACK Packet from the client 
                   byte[] holder = new byte[MAX_PACKET];
-                  DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-                  cSocket.receive(incoming); //receive the incoming packet
-                  log("Received ACK Packet!" + "\n");
-                  readACKPacket(incoming, blockNo);
+                  DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // make the incoming datagram packet
+                  cSocket.receive(incoming);                                        // receive the incoming packet
+                  log("Received ACK Packet!" + "\n");                               // log the ack packet
+                  readACKPacket(incoming, blockNo);                                 // read the ACKPacket
                   if(size < 511) {
-                     continueRRQ = false;
+                     continueRRQ = false; //if the data is less then 511, don't go through the loop anymore
                   }
                } //try
                catch(IOException ioe) {
                   try {
-                     log("IOException..." + ioe + "\n");
-                     ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
-                     cSocket.send(errorPkt.build());
-                     log("ERROR sent to client...\n");
-                     continueRRQ = false;
+                     log("IOException..." + ioe + "\n");                                         // IOException occurred..send error packet
+                     ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString()); // build the error packet
+                     cSocket.send(errorPkt.build());                                             // send the error packet
+                     log("ERROR sent to client...\n");                                           // log the error
+                     continueRRQ = false;                                                        // end the loop
                   }
                   catch(IOException ioe1) {
                      log("IOException 1 in doRRQ(): " + ioe1 + "\n");
@@ -386,11 +392,11 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                } //catch 2
                catch(Exception e) {
                   try {
-                     log("Exception occurred..." + e + "\n");
-                     ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
-                     cSocket.send(errorPkt.build());
-                     log("ERROR sent to client...\n");
-                     continueRRQ = false;
+                     log("Exception occurred..." + e + "\n");                                    // Exception occurred..send error packet
+                     ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());   // build the error packet
+                     cSocket.send(errorPkt.build());                                             // send the error packet
+                     log("ERROR sent to client...\n");                                           // log the error
+                     continueRRQ = false;                                                        // end the loop
                   }
                   catch(IOException ioe) {
                      log("IOException 2 in doRRQ(): " + ioe + "\n");
@@ -401,11 +407,11 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             } //catch eofe
             catch(IOException ioe) {
                try {
-                  log("IOException occurred in doRRQ()..." + ioe + "\n");
-                  ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());
-                  cSocket.send(errorPkt.build());
-                  log("ERROR sent to client...\n");
-                  continueRRQ = false;
+                  log("IOException occurred in doRRQ()..." + ioe + "\n");                        // IOException occurred..send error packet
+                  ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, ioe.toString());    // build the error packet
+                  cSocket.send(errorPkt.build());                                                // send the error packet
+                  log("ERROR sent to client...\n");                                              // log the error
+                  continueRRQ = false;                                                           // end the loop
                }
                catch(IOException ioe1) {
                   log("IOException 3 in doRRQ(): " + ioe1 + "\n");
@@ -413,18 +419,18 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             } //catch
             catch(Exception e) {
                try {
-                  log("Exception occurred in doRRQ()..." + e + "\n");
-                  ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());
-                  cSocket.send(errorPkt.build());
-                  log("ERROR sent to client...\n");
-                  continueRRQ = false;
+                  log("Exception occurred in doRRQ()..." + e + "\n");                            // Exception occurred..send error packet
+                  ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 0, e.toString());      // build the error packet
+                  cSocket.send(errorPkt.build());                                                // send the error packet
+                  log("ERROR sent to client...\n");                                              // log the error
+                  continueRRQ = false;                                                           // end the loop
                }
                catch(IOException ioe) {
                   log("4 in doRRQ(): " + ioe + "\n");
                }
             } //catch
             
-         } //while true
+         } //while ContinueRRQ
          
       } //doRRQ()
       
@@ -436,58 +442,64 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       public void doWRQ(DatagramPacket firstPkt) {
          InetAddress toAddress = firstPkt.getAddress(); //get the address on a different port than 69
          
+         // Dissect the first packet
          WRQPacket wrqPkt = new WRQPacket();
          wrqPkt.dissect(firstPkt);
          
+         // Attributes:
          String fileName = wrqPkt.getFileName();
          int blockNo = 0;
          int dataLen = 512;
          
+         //create the data output stream
          DataOutputStream dos = null;
-         try{
+         try {
             dos = new DataOutputStream(new FileOutputStream(dir.getText() + File.separator + wrqPkt.getFileName())); //dir.getText() + File.separator + fileName
-         }catch(IOException ioe){
-            System.out.println(ioe.toString());
+         }
+         catch(IOException ioe) {
+            log("IOException occurred in doWRQ()... " + ioe + "\n");
          }
          
-         boolean continueWRQ = true;
-         while(continueWRQ){
-            try{
-               ACKPacket ackPkt = new ACKPacket(toAddress, port, blockNo);
-               cSocket.send(ackPkt.build()); // PACKET 3
-               log("Sent ACK Packet! Blk#: " + blockNo + "\n");
+         boolean continueWRQ = true; //for the loop
+         while(continueWRQ) {
+            try {
+               ACKPacket ackPkt = new ACKPacket(toAddress, port, blockNo); // make the ACKPacket
+               cSocket.send(ackPkt.build()); // PACKET 3                      send it
+               log("Sent ACK Packet! Blk#: " + blockNo + "\n");            // log it
                
                if(dataLen < 511) {
-                  continueWRQ = false;
+                  continueWRQ = false; //if the length of the data is less than 511, break the loop
                   break;
                }
                
-               byte[] holder = new byte[MAX_PACKET];
-               DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-               cSocket.receive(incoming); //receive the incoming packet
+               byte[] holder = new byte[MAX_PACKET];                             //create a byte holder with size of MAX_PACKET
+               DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); //create the incoming packet
+               cSocket.receive(incoming);                                        //receive the incoming packet
                
-               // Figure out if the incoming datagrampacket is RRQ or WRQ packet
+               // create the streams: Byte Array Input Stream & Data Input Stream
                ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
                DataInputStream dis = new DataInputStream(bais);
-               int opcode = dis.readShort();
-            
+               int opcode = dis.readShort(); //read in the opcode
+               
+               //if the opcode is an error...
                if (opcode == ERROR) { //opcode == 5
-                  ERRORPacket errorPkt = new ERRORPacket();
-                  errorPkt.dissect(incoming);
+                  ERRORPacket errorPkt = new ERRORPacket(); //make an error packet
+                  errorPkt.dissect(incoming);               //disect the error packet
                
                   log("Error recieved from client:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
                   return;
                }
                else if (opcode == DATA) { //opcode == 3
                
-                  DATAPacket dataPkt = new DATAPacket();
-                  dataPkt.dissect(incoming);
+                  DATAPacket dataPkt = new DATAPacket(); //create a DATAPacket
+                  dataPkt.dissect(incoming);             //dissect the incoming data packet
                   
+                  // GET ATTRIBUTES:
                   byte[] data = dataPkt.getData();
                   blockNo = dataPkt.getBlockNo();
                   int port = dataPkt.getPort();
                   dataLen = dataPkt.getDataLen();
-                  log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
+                  log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n"); //log the DATAPacket
                   
                   try {
                   //write until end of file exception
@@ -497,13 +509,13 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                         
                   } //try
                   catch(EOFException eofe) {
-                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo);
-                     cSocket.send(ackPkt1.build()); // PACKET 3
+                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo); //create the ACKPacket
+                     cSocket.send(ackPkt1.build()); // PACKET 3                     send the pacekt
                      
-                     log("Sent ACK Packet! Blk#: " + blockNo + "\n");
+                     log("Sent ACK Packet! Blk#: " + blockNo + "\n");             //log it
                      
                      if(dataLen < 511) {
-                        continueWRQ = false;
+                        continueWRQ = false; //if the length of the data is less than 511, set the loop to false
                      }
                   
                   } //catch        
@@ -512,11 +524,13 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             
                
                
-            }catch(IOException ioe){}
-         }
+            } //try
+            catch(IOException ioe){}
+            
+         } //while continueWRQ
          
          log("Successfuly uploaded file..." + fileName + "\n");
-      }
+      } //doWRQ()
       
       /** 
       * readACKPacket()
@@ -525,11 +539,11 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       * @param blockNo the block number
       */
       public void readACKPacket(DatagramPacket pkt, int blockNo) {
-         ACKPacket ackPkt = new ACKPacket();
-         ackPkt.dissect(pkt);
+         ACKPacket ackPkt = new ACKPacket(); //create the ACKPacket
+         ackPkt.dissect(pkt);                //dissect the packet
          
          if (ackPkt.getOpCode() == ACK && ackPkt.getBlockNo() == blockNo) {
-            //all good
+            //all good, log the packet with the block name
             log("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n");
          }
       } //readACKPacket()
