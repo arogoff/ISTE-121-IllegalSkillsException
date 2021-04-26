@@ -338,7 +338,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                log("Received ACK Packet!" + "\n");
                readACKPacket(incoming, blockNo-1);
                
-               if(size < 512) {
+               if(size < 511) {
                   continueRRQ = false;
                }
                
@@ -368,7 +368,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   cSocket.receive(incoming); //receive the incoming packet
                   log("Received ACK Packet!" + "\n");
                   readACKPacket(incoming, blockNo);
-                  if(size < 512) {
+                  if(size < 511) {
                      continueRRQ = false;
                   }
                } //try
@@ -517,22 +517,6 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          
          log("Successfuly uploaded file..." + fileName + "\n");
       }
-      
-      /** 
-      * getLength()
-      * Length of data excluding any null values
-      * @param byte[] data
-      * @return the count of data of bytes that are not null
-      */
-      public int getLength(byte[] data) {
-         int count = 0;
-         for(byte element : data) {
-            if (element != 0) {
-               count++;
-            }
-         }
-         return count;
-      } //getLength()
       
       /** 
       * readACKPacket()
