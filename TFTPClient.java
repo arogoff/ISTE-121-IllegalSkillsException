@@ -7,6 +7,8 @@ import javafx.scene.layout.*;
 import javafx.scene.text.*;
 import javafx.stage.*;
 import javafx.geometry.*;
+import java.awt.Dimension;
+import java.awt.Toolkit;
 
 import java.util.*;
 import java.net.*;
@@ -42,6 +44,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    // IO attributes
    private DatagramSocket socket = null;
    private InetAddress serverIP = null;
+   
+   // Screen stuff
+   private Dimension size = Toolkit.getDefaultToolkit().getScreenSize(); // get screen size
+   private double width = size.width;
+   private double height = size.height;
+   
 
    /**
     * main program 
@@ -97,10 +105,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       btnDownload.setOnAction(this);
       
       tfDirectory.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
-   
+      
+      // Setup the screen
+      stage.setX((size.width / 2 - (475 / 2)) + 310);  //offset the screen by 310
+      stage.setY(size.height / 2 - (300 / 2));
+      
       scene = new Scene(root, 475, 300);
-      stage.setX(1200);
-      stage.setY(250);
       stage.setScene(scene);
       stage.show();      
       
@@ -170,14 +180,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          ip = "localhost";
       }
       else {
-         ip = tfServerIP.getText();
+         ip = tfServerIP.getText(); //ip is what's in the textfield that the user has put in
       }
       
       try {
          serverIP = InetAddress.getByName(ip);
       
-         socket = new DatagramSocket();
-         socket.setSoTimeout(1000);
+         socket = new DatagramSocket(); //create a socket
+         socket.setSoTimeout(1000);     //set a timeout
       } //try
       catch (Exception e) {
          taLog.appendText("Connection failed..." + e + "\n");
@@ -198,7 +208,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }
       catch(Exception e){}
       
-      socket = null;
+      socket = null; //set the socket to null
    }
    
    /** 
@@ -207,6 +217,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * uploads a file to the server using the TFTP protocol
    */
    public void doUpload() {
+      // ATTRIBUTES:
       String fileName = "";
       String clientFileName = "";
       DataInputStream dis = null;
@@ -228,43 +239,46 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          File fileToUpload = chooserWindow.showOpenDialog(stage); //make the save dialog appear
          clientFileName = fileToUpload.getName();
          
+         //make a textinputdialog for selecting the name for the file
          TextInputDialog input = new TextInputDialog();
          input.setHeaderText("Enter the name to file on the server for saving the upload");
          input.setTitle("Remote Name");
-         input.setX(1200); //set the textinputdialog ontop of the client
-         input.setY(250);
+         input.setX((width / 2 - (475 / 2)) + 310); //set the textinputdialog ontop of the client
+         input.setY(height / 2 - (300 / 2));
          input.showAndWait();
          
          fileName = input.getEditor().getText();
          
+         //if the user did not select a file to upload
          if (fileToUpload == null) {
             taLog.appendText("You did not choose a file to upload... canceling upload.\n");
             doDisconnect();
             return;
          }
+         //if the user did put in a file
          else {
             dis = new DataInputStream(new FileInputStream(fileToUpload)); //open the file, clear it's contents
          }
          
          //InetAddress _toAddress, int _port, String _fileName, String _mode
-         WRQPacket wrqPkt = new WRQPacket(serverIP, TFTP_PORT, fileName, "octet");
-         socket.send(wrqPkt.build()); //PACKET 1
+         WRQPacket wrqPkt = new WRQPacket(serverIP, TFTP_PORT, fileName, "octet"); //make a WRQPacket
+         socket.send(wrqPkt.build()); //PACKET 1                                     send it out
          
          //LOOP START HERE
          while(continueLoop) {
-            byte[] holder = new byte[MAX_PACKET];
-            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-            socket.receive(incoming); //PACKET 2
+            byte[] holder = new byte[MAX_PACKET];                             //create a holder of byte array which the size is MAX_PACKET
+            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); //make the incoming datagram packet
+            socket.receive(incoming); //PACKET 2                                receive the packet
             
-            port = incoming.getPort();
+            port = incoming.getPort(); //get the port
             
-            if(readACKPacket(incoming, blockNo)){ // if true then correct
+            if(readACKPacket(incoming, blockNo)) { // if true then correct
                data = new byte[512]; // clear byte[] 
                size = 0;
                for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();              //read in the data
                   size++;
-               }
+               } //for
                
                blockNo++; // Increment block number
                
@@ -278,21 +292,28 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                socket.send(secondPkt.build()); //send the second packet
                
                if(size < 511) {
-                  continueLoop = false;
-               }
-            }
-         }
-      }catch(SocketTimeoutException ste) {
-         taLog.appendText("Download timed out waiting for ACK!\n");
-         doDisconnect();
-         return;
-      }catch(EOFException eofe){
-         try {
-            blockNo++;
+                  continueLoop = false; //if the size is less than 511, end the loop
+               } //if
+               
+            } //if readACKPacket...
             
-            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, size);
-            dis.close(); //close the stream
-                  //Sends the data packet and waits to receive the ACK Packet from the client
+         } //while continueLoop
+         
+      } //try
+      catch(SocketTimeoutException ste) { //if there is a timeout
+         taLog.appendText("Download timed out waiting for ACK!\n");
+         doDisconnect(); //disconnect from the server
+         return;
+      } //catch
+      catch(EOFException eofe) {
+         //ON END OF FILE EXCEPTION...
+         try {
+            blockNo++; //increment the block number
+            
+            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, size); //create the datapacket
+            dis.close();                                                                //close the stream
+            
+            //Sends the data packet and waits to receive the ACK Packet from the client
             if (size >= 8) {
                taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                         "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
@@ -307,23 +328,23 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                
             socket.send(secondPkt.build()); //send the second packet
                   
-                  //receiving the ACK Packet from the client 
-            byte[] holder = new byte[MAX_PACKET];
-            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-            socket.receive(incoming); //receive the incoming packet
-            // **
-            readACKPacket(incoming, blockNo);
+            //receiving the ACK Packet from the client 
+            byte[] holder = new byte[MAX_PACKET];                             // create a holder of byte array with size of MAX_PACKET
+            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // create the incoming datagram packet
+            socket.receive(incoming);                                         // receive the incoming packet
+
+            readACKPacket(incoming, blockNo); //read the ACKPacket
             if(size < 511) {
-               continueLoop = false;
+               continueLoop = false; //if the size is less than 511, end the loop
             }
          } //try
          catch(IOException ioe) {
             try {
-               taLog.appendText("IOException..." + ioe + "\n");
-               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, ioe.toString());
-               socket.send(errorPkt.build());
-               taLog.appendText("ERROR sent to client...\n");
-               continueLoop = false;
+               taLog.appendText("IOException..." + ioe + "\n");                           // IOException has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, ioe.toString()); // make the error packet
+               socket.send(errorPkt.build());                                             // send the error packet out
+               taLog.appendText("ERROR sent to client...\n");                             // log it
+               continueLoop = false;                                                      // exit the loop
             }
             catch(IOException ioe1) {
                taLog.appendText("IOException 1 in doRRQ(): " + ioe1 + "\n");
@@ -331,11 +352,11 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          } //catch 2
          catch(Exception e) {
             try {
-               taLog.appendText("Exception occurred..." + e + "\n");
-               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, e.toString());
-               socket.send(errorPkt.build());
-               taLog.appendText("ERROR sent to client...\n");
-               continueLoop = false;
+               taLog.appendText("Exception occurred..." + e + "\n");                      // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, e.toString());   // make the error packet
+               socket.send(errorPkt.build());                                             // send the error packet out
+               taLog.appendText("ERROR sent to client...\n");                             // log it
+               continueLoop = false;                                                      // exit the loop
             }
             catch(IOException ioe) {
                taLog.appendText("IOException 2 in doRRQ(): " + ioe + "\n");
@@ -343,14 +364,17 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   
          } //catch 2
       
-      }catch(FileNotFoundException fnfe){
+      } //END OF FILE EXCEPTION catch
+      
+      catch(FileNotFoundException fnfe) {
          System.out.println(fnfe.toString());
-      }catch(IOException ioe){
+      }
+      catch(IOException ioe) {
          System.out.println(ioe.toString());
       }
       taLog.appendText("Successfuly uploaded file... " + clientFileName + " to server.\n");
-      doDisconnect();
-   }
+      doDisconnect(); //disconnect from the server
+   } //doUpload()
    
    /** 
       * readACKPacket()
@@ -359,32 +383,40 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       * @param blockNo the block number
       */
    public boolean readACKPacket(DatagramPacket pkt, int blockNo) {
-      try{
+      try {
+         //create the streams: Byte Array Input Stream & Data Input Stream
          ByteArrayInputStream bais = new ByteArrayInputStream(pkt.getData(), pkt.getOffset(), pkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
-         int opcode = dis.readShort();
-            
+         int opcode = dis.readShort(); //read in the opcode
+         
+         //if the opcode is an ACKPacket..
          if (opcode == ACK) {
-            ACKPacket ackPkt = new ACKPacket();
-            ackPkt.dissect(pkt);
+            ACKPacket ackPkt = new ACKPacket(); //create the ACKPacket
+            ackPkt.dissect(pkt);                //dissect it
                
-            if(ackPkt.getBlockNo() == blockNo){
+            if(ackPkt.getBlockNo() == blockNo) {
                taLog.appendText("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n"); //all good
                return true;
-            }else{
-               // CREATE ERROR FOR BLOCK NUMBERS NOT MATCHING
             }
+            else {
+               // CREATE ERROR FOR BLOCK NUMBERS NOT MATCHING
+            } //else
                
             return false;
-         }else if (opcode == ERROR){
-            ERRORPacket errorPkt = new ERRORPacket();
-            errorPkt.dissect(pkt);
-               
+         } //if opcode == ACK
+         
+         else if (opcode == ERROR) {
+            ERRORPacket errorPkt = new ERRORPacket(); //create the ERRORPacket
+            errorPkt.dissect(pkt);                    //dissect it
+            
+            //log the error
             taLog.appendText("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
-            doDisconnect();
+            doDisconnect(); //disconnect from the server
             return false;
-         }
-      }catch(Exception e){
+         } //else if opcode == ERROR
+         
+      } //try
+      catch(Exception e) {
          taLog.appendText("Error occured in readACKPacket(): " + e + "\n");
          return false;
       }
@@ -409,8 +441,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          TextInputDialog input = new TextInputDialog();
          input.setHeaderText("Enter the name of the remote file to download");
          input.setTitle("Remote Name");
-         input.setX(1200); //set the textinputdialog ontop of the client
-         input.setY(250);
+         input.setX((width / 2 - (475 / 2)) + 310); //set the textinputdialog ontop of the client
+         input.setY(height / 2 - (300 / 2));
          input.showAndWait();
          
          String fileName = input.getEditor().getText();
@@ -447,21 +479,22 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             // Figure out if the incoming datagrampacket is RRQ or WRQ packet
             ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
             DataInputStream dis = new DataInputStream(bais);
-            int opcode = dis.readShort();
+            int opcode = dis.readShort(); //read in the opcode
             
             if (opcode == ERROR) { //opcode == 5
-               ERRORPacket errorPkt = new ERRORPacket();
-               errorPkt.dissect(incoming);
+               ERRORPacket errorPkt = new ERRORPacket(); //create the error packet
+               errorPkt.dissect(incoming);               //dissect it
                
                taLog.appendText("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
-               doDisconnect();
+               doDisconnect(); //disconnect from the server
                return;
             }
             else if (opcode == DATA) { //opcode == 3
             
-               DATAPacket dataPkt = new DATAPacket();
-               dataPkt.dissect(incoming);
-                  
+               DATAPacket dataPkt = new DATAPacket(); //create the datapacket
+               dataPkt.dissect(incoming);             //dissect it
+               
+               // ATTRIBUTES
                byte[] data = dataPkt.getData();
                int blockNo = dataPkt.getBlockNo();
                int port = dataPkt.getPort();
@@ -477,21 +510,22 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      dos.writeByte(data[i]);  //write the data
                   }
                   
-                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
-                  socket.send(ackPkt.build()); // PACKET 3
+                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo); //make the ACKPacket
+                  socket.send(ackPkt.build()); // PACKET 3                     send it out
                   taLog.appendText("Sent ACK Packet! Blk#: " + blockNo + "\n");
                         
                   if(dataLen < 511) {
-                     continueLoop = false;
+                     continueLoop = false; //if the length of the data is less than 511, set the loop to false
                   }
                         
                } //try
                catch(EOFException eofe) {
-                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);
-                  socket.send(ackPkt.build()); // PACKET 3
+                  // On END OF FILE EXCEPTION...
+                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);  //create the ACKPacket
+                  socket.send(ackPkt.build()); // PACKET 3                      send it out
                      
                   if(dataLen < 511) {
-                     continueLoop = false;
+                     continueLoop = false; //if the length of the data is less than 511, set the loop to false
                   }
                   
                } //catch        
@@ -503,7 +537,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       } // try
       catch(SocketTimeoutException ste) {
          taLog.appendText("Download timed out waiting for DATA!\n");
-         doDisconnect();
+         doDisconnect(); //disconnect from the server
          return;
       }
       catch(IOException ioe) {
