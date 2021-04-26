@@ -298,6 +298,8 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          int blockNo = 1;
          byte[] data = new byte[512];
          
+         int size = 0;
+         
          DataInputStream dis = null; //make the streams
          try {
             File downFile = new File(dir.getText() + File.separator + fileName); //get the file in it's directory
@@ -309,21 +311,23 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          
          boolean continueRRQ = true;
          while(continueRRQ) {
+            size = 0;
             try {
                //read until end of file exception
                data = new byte[512];                   //set the data array to null
                for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();              //read in the data
+                  size++;
                }
                   
-               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data)); //make the second packet
+               DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, size); //make the second packet
                   
                blockNo++; // Increment block number
                   
                //Sends the data packet and waits to receive the ACK Packet from the client
                log("Sending DATAPacket: blockNo: " + (blockNo-1) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
-                  "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
-                     + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                  "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
+                     + "  [" + size + "]" + data[size] + "\n");
                      
                cSocket.send(secondPkt.build()); //send the second packet
                
@@ -334,22 +338,22 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                log("Received ACK Packet!" + "\n");
                readACKPacket(incoming, blockNo-1);
                
-               if(getLength(data) < 511) {
+               if(size < 512) {
                   continueRRQ = false;
                }
                
             } //try
             catch(EOFException eofe) {
                try {
-                  DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, getLength(data));
+                  DATAPacket secondPkt = new DATAPacket(toAddress, port, blockNo, data, size);
                   dis.close(); //close the stream
                   //Sends the data packet and waits to receive the ACK Packet from the client
-                  if (getLength(data) >= 8) {
+                  if (size >= 8) {
                      log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
-                        "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
-                        + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                        "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
+                        + "  [" + size + "]" + data[size] + "\n");
                   }
-                  else if (getLength(data) >= 3) {
+                  else if (size >= 3) {
                      log("Sending DATAPacket: blockNo: " + (blockNo) + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
                   }
                   else {
@@ -364,7 +368,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   cSocket.receive(incoming); //receive the incoming packet
                   log("Received ACK Packet!" + "\n");
                   readACKPacket(incoming, blockNo);
-                  if(getLength(data) < 511) {
+                  if(size < 512) {
                      continueRRQ = false;
                   }
                } //try

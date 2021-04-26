@@ -214,6 +214,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       byte[] data = new byte[512];
       int port = -1;
       boolean continueLoop = true;
+      int size = 0;
       
       try{
          // Connect to server
@@ -259,23 +260,24 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             
             if(readACKPacket(incoming, blockNo)){ // if true then correct
                data = new byte[512]; // clear byte[] 
-               
+               size = 0;
                for (int i = 0; i < data.length-1; i++) { //for all the data
                   data[i] = dis.readByte();              //read in the data
+                  size++;
                }
                
                blockNo++; // Increment block number
                
-               DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, getLength(data)); //make the second packet
+               DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, size); //make the second packet
                   
                //Sends the data packet and waits to receive the ACK Packet from the client
                taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
-                  "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
-                     + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                  "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
+                     + "  [" + size + "]" + data[size] + "\n");
                      
                socket.send(secondPkt.build()); //send the second packet
                
-               if(getLength(data) < 511) {
+               if(size < 512) {
                   continueLoop = false;
                }
             }
@@ -288,15 +290,15 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          try {
             blockNo++;
             
-            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, getLength(data));
+            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, size);
             dis.close(); //close the stream
                   //Sends the data packet and waits to receive the ACK Packet from the client
-            if (getLength(data) >= 8) {
+            if (size >= 8) {
                taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
-                        "  ...[" + (getLength(data) -3) + "]" +  data[getLength(data) -3 ] + "  [" + (getLength(data) -2) + "]" + data[getLength(data) -2 ] + "  [" + (getLength(data) -1)  + "]" + data[getLength(data) -1 ]
-                        + "  [" + getLength(data) + "]" + data[getLength(data)] + "\n");
+                        "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
+                        + "  [" + size + "]" + data[size] + "\n");
             }
-            else if (getLength(data) >= 3) {
+            else if (size >= 3) {
                taLog.appendText("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "\n");
             }
             else {
@@ -311,7 +313,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             socket.receive(incoming); //receive the incoming packet
             // **
             readACKPacket(incoming, blockNo);
-            if(getLength(data) < 511) {
+            if(size < 512) {
                continueLoop = false;
             }
          } //try
