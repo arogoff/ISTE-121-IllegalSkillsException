@@ -208,6 +208,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    */
    public void doUpload() {
       String fileName = "";
+      String clientFileName = "";
       DataInputStream dis = null;
       int blockNo = 0;
       byte[] data = new byte[512];
@@ -224,6 +225,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          chooserWindow.setTitle("Choose the Local File to Upload");
          chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
          File fileToUpload = chooserWindow.showOpenDialog(stage); //make the save dialog appear
+         clientFileName = fileToUpload.getName();
          
          TextInputDialog input = new TextInputDialog();
          input.setHeaderText("Enter the name to file on the server for saving the upload");
@@ -284,7 +286,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          return;
       }catch(EOFException eofe){
          try {
-            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo++, data, getLength(data));
+            blockNo++;
+            
+            DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, getLength(data));
             dis.close(); //close the stream
                   //Sends the data packet and waits to receive the ACK Packet from the client
             if (getLength(data) >= 8) {
@@ -305,7 +309,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             byte[] holder = new byte[MAX_PACKET];
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
             socket.receive(incoming); //receive the incoming packet
-            taLog.appendText("Received ACK Packet!" + "\n");
+            // **
             readACKPacket(incoming, blockNo);
             if(getLength(data) < 511) {
                continueLoop = false;
@@ -342,7 +346,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }catch(IOException ioe){
          System.out.println(ioe.toString());
       }
-      
+      taLog.appendText("Successfuly uploaded file... " + clientFileName + " to server.\n");
       doDisconnect();
    }
    
@@ -365,6 +369,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             if(ackPkt.getBlockNo() == blockNo){
                taLog.appendText("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n"); //all good
                return true;
+            }else{
+               // CREATE ERROR FOR BLOCK NUMBERS NOT MATCHING
             }
                
             return false;
