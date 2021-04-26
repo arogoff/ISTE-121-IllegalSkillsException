@@ -455,7 +455,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                
                if(dataLen < 511) {
                   continueWRQ = false;
-                  return;
+                  break;
                }
                
                byte[] holder = new byte[MAX_PACKET];
@@ -493,8 +493,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                         
                   } //try
                   catch(EOFException eofe) {
-                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo++);
+                     ACKPacket ackPkt1 = new ACKPacket(toAddress, port, blockNo);
                      cSocket.send(ackPkt1.build()); // PACKET 3
+                     
+                     log("Sent ACK Packet! Blk#: " + blockNo + "\n");
                      
                      if(dataLen < 511) {
                         continueWRQ = false;
@@ -508,7 +510,8 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                
             }catch(IOException ioe){}
          }
-      
+         
+         log("Successfuly uploaded file..." + fileName + "\n");
       }
       
       /** 
