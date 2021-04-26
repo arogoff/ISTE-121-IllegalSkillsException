@@ -27,13 +27,18 @@ public abstract class Packets implements TFTPConstants {
       try{
          String value = "";
          
-         while(true){
+         while(true) {
+         
             byte b = dis.readByte();
-            if(b == 0)
+            if(b == 0) {
                return value;
+            }
             value += (char) b;
-         }
-      }catch(Exception e){}
+            
+         } //while
+      } //try
+      
+      catch(Exception e){}
      
       return null;
    } //readBytes
@@ -111,7 +116,7 @@ class RRQPacket extends Packets {
     * @return if opcode does not equal RRQ variable, return.
     */
    public void dissect(DatagramPacket rrqPkt) {
-      try{
+      try {
          toAddress = rrqPkt.getAddress();
          port = rrqPkt.getPort();
          
@@ -120,7 +125,8 @@ class RRQPacket extends Packets {
          ByteArrayInputStream bais = new ByteArrayInputStream(rrqPkt.getData(), rrqPkt.getOffset(), rrqPkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
          int opcode = dis.readShort();
-         if(opcode != RRQ){
+         
+         if(opcode != RRQ) {
             fileName = "";
             mode = "";
             
@@ -133,7 +139,7 @@ class RRQPacket extends Packets {
          
          dis.close();
       } //try
-      catch(Exception e){
+      catch(Exception e) {
       
       } //catch
    } //dissect()
@@ -197,7 +203,7 @@ class WRQPacket extends Packets {
     */
    public DatagramPacket build() {
       //(InetAddress toAddress, int port, String fileName, String mode)
-      try{
+      try {
          ByteArrayOutputStream baos = new ByteArrayOutputStream(1 + fileName.length() + 1 + "octet".length() + 1);
          DataOutputStream dos = new DataOutputStream(baos);
       
@@ -216,10 +222,11 @@ class WRQPacket extends Packets {
          DatagramPacket wrqPkt = new DatagramPacket(holder, holder.length, toAddress, port); // Build a DatagramPacket from the byte[]
       
          return wrqPkt;
-      }catch(Exception e){
+      } //try
+      catch(Exception e) {
          return null;
-      }
-   }
+      } //catch
+   } //build()
    
    /** dissect() method
     *
@@ -227,7 +234,7 @@ class WRQPacket extends Packets {
     * @param wrqPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket wrqPkt) {
-      try{
+      try {
          toAddress = wrqPkt.getAddress();
          port = wrqPkt.getPort();
          
@@ -236,7 +243,8 @@ class WRQPacket extends Packets {
          ByteArrayInputStream bais = new ByteArrayInputStream(wrqPkt.getData(), wrqPkt.getOffset(), wrqPkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
          int opcode = dis.readShort();
-         if(opcode != WRQ){
+         
+         if(opcode != WRQ) {
             fileName = "";
             mode = "";
             
@@ -249,7 +257,7 @@ class WRQPacket extends Packets {
          
          dis.close();
       } //try
-      catch(Exception e){
+      catch(Exception e) {
       
       } //catch
    
@@ -355,7 +363,8 @@ class DATAPacket extends Packets {
          ByteArrayInputStream bais = new ByteArrayInputStream(dataPkt.getData(), dataPkt.getOffset(), dataPkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
          int opcode = dis.readShort();
-         if(opcode != DATA){
+         
+         if(opcode != DATA) {
             blockNo = 0;
             
             dis.close();
@@ -456,7 +465,7 @@ class ACKPacket extends Packets {
     * @return DatagramPacket Returns the newly created ACKPacket
     */
    public DatagramPacket build() {
-      try{
+      try {
          ByteArrayOutputStream baos = new ByteArrayOutputStream(4); // 4 bytes total size, 2 for opcode, 2 for block number
          DataOutputStream dos = new DataOutputStream(baos);
       
@@ -484,7 +493,7 @@ class ACKPacket extends Packets {
     * @param ackPkt Of type DatagramPacket, this packet of information will be broken up
     */
    public void dissect(DatagramPacket ackPkt) {
-      try{
+      try {
          toAddress = ackPkt.getAddress();
          port = ackPkt.getPort();
          
@@ -493,7 +502,8 @@ class ACKPacket extends Packets {
          ByteArrayInputStream bais = new ByteArrayInputStream(ackPkt.getData(), ackPkt.getOffset(), ackPkt.getLength());
          DataInputStream dis = new DataInputStream(bais);
          int opcode = dis.readShort();
-         if(opcode != ACK){
+         
+         if(opcode != ACK) {
             blockNo = 0;
             
             dis.close();
@@ -507,7 +517,7 @@ class ACKPacket extends Packets {
       catch(Exception e) {
       
       } //catch
-   }
+   } //dissect
    
    /** getOpCode() method
     *
@@ -587,8 +597,8 @@ class ERRORPacket extends Packets {
       } //try
       catch(Exception e) {
          return null;
-      }
-   }
+      } //catch
+   } //build()
    
    /** dissect() method
     *
