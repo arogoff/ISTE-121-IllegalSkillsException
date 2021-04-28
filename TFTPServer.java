@@ -222,6 +222,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       private DatagramSocket cSocket = null;
       private DatagramPacket firstPkt = null;
       private int port = 0;
+      private InetAddress toAddress = null;
    
       // Constructor for ClientThread
       public UDPClientThread(DatagramPacket _pkt) {
@@ -292,7 +293,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          //cSocket.bind(new InetSocketAddress(#)); this is where we change the port
          
          // Gets the IP address of the machine that sent the packet
-         InetAddress toAddress = firstPkt.getAddress(); // get the address on a different port than 69
+         toAddress = firstPkt.getAddress(); // get the address on a different port than 69
          
          // Create an RRQPacket & Dissect the first packet
          RRQPacket rrqPkt = new RRQPacket();
@@ -349,7 +350,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // make the incoming datagram packet
                cSocket.receive(incoming);                                        // receive the ACK Packet
                log("Received ACK Packet!" + "\n");                               // log the ack packet
-               readACKPacket(incoming, blockNo-1);                               // read the ACKPacket
+               if(!readACKPacket(incoming, blockNo-1)){
+                  continueRRQ = false;
+                  break;
+               }                              // read the ACKPacket
                
                if(size < 511) {
                   continueRRQ = false; //if the data is less then 511, don't go through the loop anymore
@@ -382,7 +386,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // make the incoming datagram packet
                   cSocket.receive(incoming);                                        // receive the incoming packet
                   log("Received ACK Packet!" + "\n");                               // log the ack packet
-                  readACKPacket(incoming, blockNo);                                 // read the ACKPacket
+                  if(!readACKPacket(incoming, blockNo)){
+                     continueRRQ = false;
+                     break;
+                  }                                 // read the ACKPacket
                   if(size < 511) {
                      continueRRQ = false; //if the data is less then 511, don't go through the loop anymore
                   }
@@ -449,7 +456,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       * when given a write request from a client, uses TFTP protocol
       */
       public void doWRQ(DatagramPacket firstPkt) {
-         InetAddress toAddress = firstPkt.getAddress(); //get the address on a different port than 69
+         toAddress = firstPkt.getAddress(); //get the address on a different port than 69
          
          // Dissect the first packet
          WRQPacket wrqPkt = new WRQPacket();
@@ -547,14 +554,56 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       * @param pkt of DatagramPacket
       * @param blockNo the block number
       */
-      public void readACKPacket(DatagramPacket pkt, int blockNo) {
-         ACKPacket ackPkt = new ACKPacket(); //create the ACKPacket
-         ackPkt.dissect(pkt);                //dissect the packet
+      public boolean readACKPacket(DatagramPacket pkt, int blockNo) {
+         try {
+         //create the streams: Byte Array Input Stream & Data Input Stream
+            ByteArrayInputStream bais = new ByteArrayInputStream(pkt.getData(), pkt.getOffset(), pkt.getLength());
+            DataInputStream dis = new DataInputStream(bais);
+            int opcode = dis.readShort(); //read in the opcode
          
-         if (ackPkt.getOpCode() == ACK && ackPkt.getBlockNo() == blockNo) {
-            //all good, log the packet with the block name
-            log("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n");
+         //if the opcode is an ACKPacket..
+            if (opcode == ACK) {
+               ACKPacket ackPkt = new ACKPacket(); //create the ACKPacket
+               ackPkt.dissect(pkt);                //dissect it
+               
+               if(ackPkt.getBlockNo() == blockNo) {
+                  log("readACKPacket()..." + "Blk#: " + blockNo +  ", ACK!, all good." + "\n"); //all good
+                  return true;
+               }
+               else {
+                  log("Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".\n");                      // Exception has occurred...send error packet
+                  ERRORPacket errorPkt = new ERRORPacket(toAddress, pkt.getPort(), 0, "Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".");   // make the error packet
+                  cSocket.send(errorPkt.build());                                             // send the error packet out
+                  log("ERROR sent to client...\n");
+               } //else
+               
+               return false;
+            } //if opcode == ACK
+            
+            else if (opcode == ERROR) {
+               ERRORPacket errorPkt = new ERRORPacket(); //create the ERRORPacket
+               errorPkt.dissect(pkt);                    //dissect it
+            
+            //log the error
+               log("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
+               return false;
+            } //else if opcode == ERROR
+            
+            else{
+               log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(toAddress, pkt.getPort(), 4, "Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode);   // make the error packet
+               cSocket.send(errorPkt.build());                                             // send the error packet out
+               log("ERROR sent to client...\n");
+            }
+         
+         } //try
+         catch(Exception e) {
+            log("Error occured in readACKPacket(): " + e + "\n");
+            return false;
          }
+         
+         return false;
+      
       } //readACKPacket()
       
    } // End of inner class
