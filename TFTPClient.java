@@ -332,7 +332,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             byte[] holder = new byte[MAX_PACKET];                             // create a holder of byte array with size of MAX_PACKET
             DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // create the incoming datagram packet
             socket.receive(incoming);                                         // receive the incoming packet
-
+         
             readACKPacket(incoming, blockNo); //read the ACKPacket
             if(size < 511) {
                continueLoop = false; //if the size is less than 511, end the loop
@@ -548,5 +548,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       taLog.appendText(selectedFile + " has finished downloading! \n");
       
    } //doDownload()
+   
+   class ClientThread extends Thread{
+      
+      public ClientThread(){}
+      
+      public void run(){
+      
+      }
+   }
 
 } //TFTPClient
