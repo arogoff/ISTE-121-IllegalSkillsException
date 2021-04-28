@@ -58,6 +58,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    private Label pbProgress = new Label("Update Bar: ");
    private Label pbPercent = new Label("0");
    private ProgressBar pbBar = new ProgressBar();
+   private int totalSize = 0; //for the progress bar
 
    /**
     * main program 
@@ -264,6 +265,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          int port = -1;
          boolean continueLoop = true;
          int size = 0;
+         totalSize = 0; //for more than 1 uploads
       
          try {
          // Connect to server
@@ -284,7 +286,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             input.setHeaderText("Enter the name to file on the server for saving the upload");
             input.setTitle("Remote Name");
             input.setX((width / 2 - (475 / 2)) + 310); //set the textinputdialog ontop of the client
-            input.setY(height / 2 - (300 / 2));
+            input.setY(height / 2 - (315 / 2));
             input.showAndWait();
          
             fileName = input.getEditor().getText();
@@ -312,16 +314,24 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             
                port = incoming.getPort(); //get the port
             
-               if(readACKPacket(incoming, blockNo)) { // if true then correct
-                  data = new byte[512]; // clear byte[] 
+               if(readACKPacket(incoming, blockNo)) {       // if true then correct
+                  data = new byte[512];                     // clear byte[] 
                   size = 0;
                   for (int i = 0; i < data.length-1; i++) { //for all the data
                      data[i] = dis.readByte();              //read in the data
                      size++;
+                     totalSize++;                           //increment every byte no matter what block
                      
-                     pbBar.setProgress((int)size / (double)fileToUpload.length());
-                     double value = ((int)size / (double)fileToUpload.length()) * 100;
-                     pbPercent.setText(String.valueOf((int)value));
+                     final int temp = totalSize; //final for platform.runlater
+                     double value = ((int)totalSize / (double)fileToUpload.length()) * 100;
+                     
+                     //thread safe platform.runlater
+                     Platform.runLater(new Runnable() { 
+                        public void run() {
+                           pbBar.setProgress((int)temp / (double)fileToUpload.length());
+                           pbPercent.setText(String.valueOf((int)value));
+                        }
+                     });
                   } //for
                
                   blockNo++; // Increment block number
