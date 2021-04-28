@@ -379,10 +379,28 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       } //END OF FILE EXCEPTION catch
       
       catch(FileNotFoundException fnfe) {
-         System.out.println(fnfe.toString());
+         try {
+            taLog.appendText("FileNotFoundException occurred in doRRQ() (2)... Sending error packet! - " + fnfe + "\n");
+            ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 1, fnfe.toString()); // build the error packet
+            socket.send(errorPkt.build());                                             // send the error packet
+            taLog.appendText("ERROR sent to Server...\n");
+            return;                                                      // exit the loop
+         }
+         catch(IOException ioe1) {
+            taLog.appendText("IOException in doRRQ() (2): " + ioe1 + "\n");
+         }
       }
       catch(IOException ioe) {
-         System.out.println(ioe.toString());
+         try {
+            taLog.appendText("IOException..." + ioe + "\n");                           // IOException has occurred...send error packet
+            ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, ioe.toString()); // make the error packet
+            socket.send(errorPkt.build());                                             // send the error packet out
+            taLog.appendText("ERROR sent to client...\n");                             // log it
+            continueLoop = false;                                                      // exit the loop
+         }
+         catch(IOException ioe1) {
+            taLog.appendText("IOException (end) in doRRQ(): " + ioe1 + "\n");
+         }
       }
       taLog.appendText("Successfuly uploaded file... " + clientFileName + " to server.\n");
       doDisconnect(); //disconnect from the server
@@ -411,7 +429,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                return true;
             }
             else {
-               // CREATE ERROR FOR BLOCK NUMBERS NOT MATCHING
+               taLog.appendText("Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".\n");                      // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, pkt.getPort(), 0, "Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".");   // make the error packet
+               socket.send(errorPkt.build());                                             // send the error packet out
+               taLog.appendText("ERROR sent to client...\n");
             } //else
                
             return false;
@@ -426,6 +447,13 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             doDisconnect(); //disconnect from the server
             return false;
          } //else if opcode == ERROR
+         
+         else{
+            taLog.appendText("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
+            ERRORPacket errorPkt = new ERRORPacket(serverIP, pkt.getPort(), 4, "Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode);   // make the error packet
+            socket.send(errorPkt.build());                                             // send the error packet out
+            taLog.appendText("ERROR sent to client...\n");
+         }
          
       } //try
       catch(Exception e) {
@@ -445,6 +473,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    public void doDownload() { // create rrq packet to send
    
       String selectedFile = ""; //for referencing the name of the file after the catches.
+      int port = -1;
+      
       try {
          // connect to server stuff here (aka doConnect() method)
          doConnect();
@@ -509,7 +539,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                // ATTRIBUTES
                byte[] data = dataPkt.getData();
                int blockNo = dataPkt.getBlockNo();
-               int port = dataPkt.getPort();
+               port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
                taLog.appendText("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
                   
@@ -543,6 +573,13 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                } //catch        
                 
             } //else if opcode = DATA
+            
+            else{
+               taLog.appendText("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 4, "Illegal Opcode! Looking for OPCODE-3 or OPCODE-5. Recieved: " + opcode);   // make the error packet
+               socket.send(errorPkt.build());                                             // send the error packet out
+               taLog.appendText("ERROR sent to client...\n");
+            }
             
          } //while
          
