@@ -338,6 +338,18 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                continueLoop = false; //if the size is less than 511, end the loop
             }
          } //try
+         catch(FileNotFoundException fnfe){
+            try {
+               taLog.appendText("FileNotFoundException occurred in doRRQ()... Sending error packet! - " + fnfe + "\n");
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 1, fnfe.toString()); // build the error packet
+               socket.send(errorPkt.build());                                             // send the error packet
+               taLog.appendText("ERROR sent to Server...\n");
+               return;                                                      // exit the loop
+            }
+            catch(IOException ioe1) {
+               taLog.appendText("IOException 0 in doRRQ(): " + ioe1 + "\n");
+            }
+         }
          catch(IOException ioe) {
             try {
                taLog.appendText("IOException..." + ioe + "\n");                           // IOException has occurred...send error packet
