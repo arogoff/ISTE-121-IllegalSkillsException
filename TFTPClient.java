@@ -9,6 +9,7 @@ import javafx.stage.*;
 import javafx.geometry.*;
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.util.concurrent.*;
 
 import java.util.*;
 import java.net.*;
@@ -52,6 +53,11 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    
    // Client Thread stuff
    ClientThread ct;  
+   
+   // Progress bar - BOT
+   private Label pbProgress = new Label("Update Bar: ");
+   private Label pbPercent = new Label("0");
+   private ProgressBar pbBar = new ProgressBar();
 
    /**
     * main program 
@@ -101,6 +107,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       fpLog.getChildren().addAll(lblLog, taLog);
       root.getChildren().add(fpLog);
       
+      // BOTTOM - Progress Bar
+      StackPane sPane = new StackPane();
+      FlowPane fpBot = new FlowPane();
+      fpBot.setAlignment(Pos.CENTER);
+      fpBot.getChildren().addAll(pbProgress);
+      sPane.getChildren().addAll(pbBar, pbPercent);
+      root.getChildren().addAll(fpBot, sPane);
+      
       // Listen for the buttons
       btnChooseFolder.setOnAction(this);
       btnUpload.setOnAction(this);
@@ -110,9 +124,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       
       // Setup the screen
       stage.setX((size.width / 2 - (475 / 2)) + 310);  //offset the screen by 310
-      stage.setY(size.height / 2 - (300 / 2));
+      stage.setY(size.height / 2 - (340 / 2));
       
-      scene = new Scene(root, 475, 300);
+      scene = new Scene(root, 475, 340);
       stage.setScene(scene);
       stage.show();      
       
@@ -251,9 +265,11 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          boolean continueLoop = true;
          int size = 0;
       
-         try{
+         try {
          // Connect to server
             doConnect();
+            pbBar.setProgress(0);
+            pbPercent.setText("0");
          
          //make a filechooser for choosing file to upload
             FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
@@ -302,6 +318,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   for (int i = 0; i < data.length-1; i++) { //for all the data
                      data[i] = dis.readByte();              //read in the data
                      size++;
+                     
+                     pbBar.setProgress((int)size / (double)fileToUpload.length());
+                     double value = ((int)size / (double)fileToUpload.length()) * 100;
+                     pbPercent.setText(String.valueOf((int)value));
                   } //for
                
                   blockNo++; // Increment block number
