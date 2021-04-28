@@ -309,8 +309,17 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             File downFile = new File(dir.getText() + File.separator + fileName); // get the file in it's directory
             dis = new DataInputStream(new FileInputStream(downFile));            // open the file
          }
-         catch(IOException ioe) {
-            log("IOException occurred in doRRQ()... " + ioe + "\n");
+         catch(FileNotFoundException fnfe){
+            try{
+               log("FileNotFoundException occurred in doRRQ()... Sending error packet! - " + fnfe + "\n");
+               ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 1, fnfe.toString()); // build the error packet
+               cSocket.send(errorPkt.build());                                             // send the error packet
+               log("ERROR sent to client...\n");
+            }catch(IOException ioe){
+               log("IOException occurred in doRRQ()... " + ioe + "\n");
+            }
+            
+            return;
          }
          
          boolean continueRRQ = true; // for loop control
