@@ -86,6 +86,14 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       btnStartStop.setOnAction(this);
       btnChooseFolder.setOnAction(this);
       
+      // On window close, close the program
+      stage.setOnCloseRequest(
+         new EventHandler<WindowEvent>() {
+            public void handle(WindowEvent evt) {
+               doStop();
+            }
+         });
+      
       dir.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
       
       // Show window
