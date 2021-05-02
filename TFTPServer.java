@@ -91,6 +91,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
          new EventHandler<WindowEvent>() {
             public void handle(WindowEvent evt) {
                doStop();
+               System.exit(0);
             }
          });
       
@@ -150,6 +151,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    
    //Stop method
    public void doStop() {
+      if (serverThread == null) {
+         System.exit(0);
+      }
       serverThread.stopServer();
       log("Server Stopped!\n");
       btnStartStop.setText("Start");

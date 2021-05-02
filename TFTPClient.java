@@ -133,6 +133,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          new EventHandler<WindowEvent>() {
             public void handle(WindowEvent evt) {
                doDisconnect();
+               System.exit(0);
             }
          });
    
