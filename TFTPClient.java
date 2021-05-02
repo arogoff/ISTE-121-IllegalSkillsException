@@ -118,6 +118,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       root.getChildren().addAll(fpBot, sPane);
       
       tfDirectory.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
+      btnChooseFolder.setOnAction(this);
+      btnUpload.setOnAction(this);
+      btnDownload.setOnAction(this);
       
       // Setup the screen
       stage.setX((size.width / 2 - (475 / 2)) + 310);  //offset the screen by 310
@@ -654,10 +657,13 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       
       public void run(){
          if(cmd.equals("Upload")){
+            System.out.println("1");
             doUpload();
          }else if(cmd.equals("Download")){
+            System.out.println("2");
             doDownload();
          }else if(cmd.equals("Choose Folder")){
+            System.out.println("3");
             doChooseFolder();
          }
       }
