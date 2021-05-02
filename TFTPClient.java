@@ -22,7 +22,7 @@ import java.io.*;
  * @version 4/9/2021
  */
 
-public class TFTPClient extends Application implements EventHandler<ActionEvent>, TFTPConstants {
+public class TFTPClient extends Application implements TFTPConstants{
    // Window attributes
    private Stage stage;
    private Scene scene;
@@ -116,10 +116,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       sPane.getChildren().addAll(pbBar, pbPercent);
       root.getChildren().addAll(fpBot, sPane);
       
-      // Listen for the buttons
-      btnChooseFolder.setOnAction(this);
-      btnUpload.setOnAction(this);
-      btnDownload.setOnAction(this);
+      
       
       tfDirectory.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
       
@@ -145,26 +142,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       ct = new ClientThread();
       ct.start();
    } //start
-
-   /** 
-    * Button dispatcher
-    */
-   public void handle(ActionEvent ae) {
-      String label = ((Button)ae.getSource()).getText();
-      
-      //depending on what button the user chooses...
-      switch(label) {
-         case "Choose Folder":
-            ct.doChooseFolder();
-            break;
-         case "Upload":
-            ct.doUpload();
-            break;
-         case "Download":
-            ct.doDownload();
-            break;
-      }
-   }
    
    private void log(String message) {
       Platform.runLater(
@@ -177,12 +154,35 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
 
    
          
-   class ClientThread extends Thread{
+   class ClientThread extends Thread implements EventHandler<ActionEvent>{
       
       public ClientThread(){}
       
       public void run(){
+      // Listen for the buttons
+         btnChooseFolder.setOnAction(this);
+         btnUpload.setOnAction(this);
+         btnDownload.setOnAction(this);
+      }
       
+      /** 
+    * Button dispatcher
+    */
+      public void handle(ActionEvent ae) {
+         String label = ((Button)ae.getSource()).getText();
+      
+      //depending on what button the user chooses...
+         switch(label) {
+            case "Choose Folder":
+               doChooseFolder();
+               break;
+            case "Upload":
+               doUpload();
+               break;
+            case "Download":
+               doDownload();
+               break;
+         }
       }
       
       /** 
@@ -326,12 +326,13 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      double value = ((int)totalSize / (double)fileToUpload.length()) * 100;
                      
                      //thread safe platform.runlater
-                     Platform.runLater(new Runnable() { 
-                        public void run() {
-                           pbBar.setProgress((int)temp / (double)fileToUpload.length());
-                           pbPercent.setText(String.valueOf((int)value));
-                        }
-                     });
+                     Platform.runLater(
+                        new Runnable() { 
+                           public void run() {
+                              pbBar.setProgress((int)temp / (double)fileToUpload.length());
+                              pbPercent.setText(String.valueOf((int)value));
+                           }
+                        });
                   } //for
                
                   blockNo++; // Increment block number
