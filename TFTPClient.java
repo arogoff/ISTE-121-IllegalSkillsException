@@ -57,6 +57,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    
    String fileName, clientFileName;
    DataInputStream dis;
+   DataOutputStream dos;
    File fileTo = null;
    
    // Progress bar - BOT
@@ -207,6 +208,35 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             ct.start();
             break;
          case "Download":
+            // TextInputDialog to get the name of the file
+            TextInputDialog input1 = new TextInputDialog();
+            input1.setHeaderText("Enter the name of the remote file to download");
+            input1.setTitle("Remote Name");
+            input1.setX((width / 2 - (475 / 2)) + 310); //set the textinputdialog ontop of the client
+            input1.setY(height / 2 - (300 / 2));
+            input1.showAndWait();
+               
+            fileName = input1.getEditor().getText();
+            clientFileName = fileName;
+               
+               //make a filechooser for saving
+            FileChooser chooserWindow1 = new FileChooser(); //make the file chooser appear
+            chooserWindow1.setInitialDirectory(new File(tfDirectory.getText()));
+            chooserWindow1.setTitle("Choose where to save");
+            chooserWindow1.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
+            fileTo = chooserWindow1.showSaveDialog(stage); //make the save dialog appear
+            
+            try{
+               if (fileTo == null) {
+                  log("You did not choose a place to save... choosing default directory.\n");
+                  dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file, clear it's contents
+               }
+               else {
+                  dos = new DataOutputStream(new FileOutputStream(fileTo, false)); //open the file, clear it's contents
+               }
+            }catch(FileNotFoundException fnfe){
+               log("File Not Found..." + fnfe);
+            }
             ct = new ClientThread(label);
             ct.start();
             break;
@@ -537,135 +567,105 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    * downloads a file from the server using the TFTP protocol
    */
    public void doDownload() { // create rrq packet to send
-      Platform.runLater(
-         new Runnable(){
-            public void run(){
-               String selectedFile = ""; //for referencing the name of the file after the catches.
-               int port = -1;
+      
+      String selectedFile = ""; //for referencing the name of the file after the catches.
+      int port = -1;
             
-               try {
+      try {
                // connect to server stuff here (aka doConnect() method)
-                  doConnect();
+         doConnect();
                
-               // TextInputDialog to get the name of the file
-                  TextInputDialog input = new TextInputDialog();
-                  input.setHeaderText("Enter the name of the remote file to download");
-                  input.setTitle("Remote Name");
-                  input.setX((width / 2 - (475 / 2)) + 310); //set the textinputdialog ontop of the client
-                  input.setY(height / 2 - (300 / 2));
-                  input.showAndWait();
                
-                  String fileName = input.getEditor().getText();
-                  selectedFile = fileName;
-               
-               //make a filechooser for saving
-                  FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
-                  chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
-                  chooserWindow.setTitle("Choose where to save");
-                  chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
-                  File placeToSave = chooserWindow.showSaveDialog(stage); //make the save dialog appear
-               
-                  DataOutputStream dos = null;
-                  if (placeToSave == null) {
-                     log("You did not choose a place to save... choosing default directory.\n");
-                     dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file, clear it's contents
-                  }
-                  else {
-                     dos = new DataOutputStream(new FileOutputStream(placeToSave, false)); //open the file, clear it's contents
-                  }
                
                //InetAddress _toAddress, int _port, String _fileName, String _mode
-                  RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
-                  socket.send(rrqPkt.build()); //PACKET 1
+         RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
+         socket.send(rrqPkt.build()); //PACKET 1
                
                // LOOP START HERE
-                  boolean continueLoop = true;
-                  while(continueLoop) {
+         boolean continueLoop = true;
+         while(continueLoop) {
                   //receiving the DATA Packet from the Server
-                     byte[] holder = new byte[MAX_PACKET];
-                     DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
-                     socket.receive(incoming); //PACKET 2
+            byte[] holder = new byte[MAX_PACKET];
+            DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
+            socket.receive(incoming); //PACKET 2
                   
                   // Figure out if the incoming datagrampacket is RRQ or WRQ packet
-                     ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
-                     DataInputStream dis = new DataInputStream(bais);
-                     int opcode = dis.readShort(); //read in the opcode
+            ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
+            DataInputStream dis = new DataInputStream(bais);
+            int opcode = dis.readShort(); //read in the opcode
                   
-                     if (opcode == ERROR) { //opcode == 5
-                        ERRORPacket errorPkt = new ERRORPacket(); //create the error packet
-                        errorPkt.dissect(incoming);               //dissect it
+            if (opcode == ERROR) { //opcode == 5
+               ERRORPacket errorPkt = new ERRORPacket(); //create the error packet
+               errorPkt.dissect(incoming);               //dissect it
                      
-                        log("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
-                        doDisconnect(); //disconnect from the server
-                        return;
-                     }
-                     else if (opcode == DATA) { //opcode == 3
+               log("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
+               doDisconnect(); //disconnect from the server
+               return;
+            }
+            else if (opcode == DATA) { //opcode == 3
                      
-                        DATAPacket dataPkt = new DATAPacket(); //create the datapacket
-                        dataPkt.dissect(incoming);             //dissect it
+               DATAPacket dataPkt = new DATAPacket(); //create the datapacket
+               dataPkt.dissect(incoming);             //dissect it
                      
                      // ATTRIBUTES
-                        byte[] data = dataPkt.getData();
-                        int blockNo = dataPkt.getBlockNo();
-                        port = dataPkt.getPort();
-                        int dataLen = dataPkt.getDataLen();
-                        log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
+               byte[] data = dataPkt.getData();
+               int blockNo = dataPkt.getBlockNo();
+               port = dataPkt.getPort();
+               int dataLen = dataPkt.getDataLen();
+               log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
                      
                      // change socket to new port
                      // socket.bind(new InetSocketAddress(#)); this is where we change the port
                      
-                        try {
+               try {
                         //write until end of file exception
-                           for (int i = 0; i < data.length; i++) { //for all the data
-                              dos.writeByte(data[i]);  //write the data
-                           }
+                  for (int i = 0; i < data.length; i++) { //for all the data
+                     dos.writeByte(data[i]);  //write the data
+                  }
                         
-                           ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo); //make the ACKPacket
-                           socket.send(ackPkt.build()); // PACKET 3                     send it out
-                           log("Sent ACK Packet! Blk#: " + blockNo + "\n");
+                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo); //make the ACKPacket
+                  socket.send(ackPkt.build()); // PACKET 3                     send it out
+                  log("Sent ACK Packet! Blk#: " + blockNo + "\n");
                         
-                           if(dataLen < 511) {
-                              continueLoop = false; //if the length of the data is less than 511, set the loop to false
-                           }
+                  if(dataLen < 511) {
+                     continueLoop = false; //if the length of the data is less than 511, set the loop to false
+                  }
                         
-                        } //try
-                        catch(EOFException eofe) {
+               } //try
+               catch(EOFException eofe) {
                         // On END OF FILE EXCEPTION...
-                           ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);  //create the ACKPacket
-                           socket.send(ackPkt.build()); // PACKET 3                      send it out
+                  ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);  //create the ACKPacket
+                  socket.send(ackPkt.build()); // PACKET 3                      send it out
                         
-                           if(dataLen < 511) {
-                              continueLoop = false; //if the length of the data is less than 511, set the loop to false
-                           }
+                  if(dataLen < 511) {
+                     continueLoop = false; //if the length of the data is less than 511, set the loop to false
+                  }
                         
-                        } //catch        
+               } //catch        
                      
-                     } //else if opcode = DATA
+            } //else if opcode = DATA
                      
-                     else{
-                        log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
-                        ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 4, "Illegal Opcode! Looking for OPCODE-3 or OPCODE-5. Recieved: " + opcode);   // make the error packet
-                        socket.send(errorPkt.build());                                             // send the error packet out
-                        log("ERROR sent to client...\n");
-                     }
-                  
-                  } //while
-               
-               } // try
-               catch(SocketTimeoutException ste) {
-                  log("Download timed out waiting for DATA!\n");
-                  doDisconnect(); //disconnect from the server
-                  return;
-               }
-               catch(IOException ioe) {
-                  log("IOException occurred in doDownload()..." + ioe + "\n");
-                  return;
-               }
-            
-               log(selectedFile + " has finished downloading! \n");
-            
+            else{
+               log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 4, "Illegal Opcode! Looking for OPCODE-3 or OPCODE-5. Recieved: " + opcode);   // make the error packet
+               socket.send(errorPkt.build());                                             // send the error packet out
+               log("ERROR sent to client...\n");
             }
-         });
+                  
+         } //while
+               
+      } // try
+      catch(SocketTimeoutException ste) {
+         log("Download timed out waiting for DATA!\n");
+         doDisconnect(); //disconnect from the server
+         return;
+      }
+      catch(IOException ioe) {
+         log("IOException occurred in doDownload()..." + ioe + "\n");
+         return;
+      }
+            
+      log(selectedFile + " has finished downloading! \n");
       
                
    } //doDownload()
