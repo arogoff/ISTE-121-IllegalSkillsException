@@ -612,7 +612,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                int blockNo = dataPkt.getBlockNo();
                port = dataPkt.getPort();
                int dataLen = dataPkt.getDataLen();
-               log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n");
+               log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + (dataLen + 1) + "\n");
                      
                      // change socket to new port
                      // socket.bind(new InetSocketAddress(#)); this is where we change the port

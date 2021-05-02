@@ -515,7 +515,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   blockNo = dataPkt.getBlockNo();
                   int port = dataPkt.getPort();
                   dataLen = dataPkt.getDataLen();
-                  log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + dataLen + "\n"); //log the DATAPacket
+                  log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + (dataLen + 1) + "\n"); //log the DATAPacket
                   
                   try {
                   //write until end of file exception
