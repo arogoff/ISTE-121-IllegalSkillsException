@@ -167,8 +167,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
             chooserWindow.setTitle("Choose the Local File to Upload");
             chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
-            File fileToUpload = chooserWindow.showOpenDialog(stage); //make the save dialog appear
-            clientFileName = fileToUpload.getName();
+            fileTo = chooserWindow.showOpenDialog(stage); //make the save dialog appear
+            this.clientFileName = fileTo.getName();
                
                //make a textinputdialog for selecting the name for the file
             TextInputDialog input = new TextInputDialog();
@@ -181,7 +181,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             fileName = input.getEditor().getText();
                
                //if the user did not select a file to upload
-            if (fileToUpload == null) {
+            if (fileTo == null) {
                log("You did not choose a file to upload... canceling upload.\n");
                doDisconnect();
                return;
@@ -189,8 +189,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   //if the user did put in a file
             else {
                try{
-                  dis = new DataInputStream(new FileInputStream(fileToUpload)); //open the file, clear it's contents
-               }catch(FileNotFoundException fnfe){}
+                  dis = new DataInputStream(new FileInputStream(fileTo)); //open the file, clear it's contents
+               }
+               catch(FileNotFoundException fnfe){
+                  log("File Not Found..." + fnfe);
+                  return;
+               }
             }
             ct = new ClientThread(label);
             ct.start();
@@ -288,10 +292,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    */
    public void doUpload() {
    
-               // ATTRIBUTES:
-      String fileName = "";
-      String clientFileName = "";
-      DataInputStream dis = null;
+      // ATTRIBUTES:
       int blockNo = 0;
       byte[] data = new byte[512];
       int port = -1;
@@ -302,7 +303,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       try {
                // Connect to server
          doConnect();
-                  
+         //dis = new DataInputStream(new FileInputStream(fileTo)); //open the file, clear it's contents       
                
                //InetAddress _toAddress, int _port, String _fileName, String _mode
          WRQPacket wrqPkt = new WRQPacket(serverIP, TFTP_PORT, fileName, "octet"); //make a WRQPacket
