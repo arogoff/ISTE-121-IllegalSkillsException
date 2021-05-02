@@ -168,7 +168,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             chooserWindow.setTitle("Choose the Local File to Upload");
             chooserWindow.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
             fileTo = chooserWindow.showOpenDialog(stage); //make the save dialog appear
-            this.clientFileName = fileTo.getName();
+            try {
+               this.clientFileName = fileTo.getName();
+            }
+            catch (NullPointerException npe) {
+               log("You did not choose a file to upload..." + npe + "\n");
+               doDisconnect();
+               return;
+            }
                
                //make a textinputdialog for selecting the name for the file
             TextInputDialog input = new TextInputDialog();
@@ -182,7 +189,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                
                //if the user did not select a file to upload
             if (fileTo == null) {
-               log("You did not choose a file to upload... canceling upload.\n");
+               log("You did not choose a file to upload... cancelling upload.\n");
                doDisconnect();
                return;
             }
