@@ -45,6 +45,8 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    // IO attributes
    private DatagramSocket socket = null;
    private InetAddress serverIP = null;
+   private DataInputStream dis;
+   private DataOutputStream dos;
    
    // Screen stuff
    private Dimension size = Toolkit.getDefaultToolkit().getScreenSize(); // get screen size
@@ -52,19 +54,20 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
    private double height = size.height;
    
    // Client Thread stuff
-   ClientThread ct;  
-   String cmd = null;
+   private ClientThread ct;  
+   private String cmd = null;
    
-   String fileName, clientFileName;
-   DataInputStream dis;
-   DataOutputStream dos;
-   File fileTo = null;
+   //Filenames stuff
+   private String fileName, clientFileName;
+   private File fileTo = null;
    
    // Progress bar - BOT
-   private Label pbProgress = new Label("Update Bar: ");
-   private Label pbPercent = new Label("0");
+   private Label pbProgress = new Label("Upload Bar: ");
+   private Label pbPercent = new Label("");
    private ProgressBar pbBar = new ProgressBar();
    private int totalSize = 0; //for the progress bar
+   private StackPane sPane;
+   private FlowPane fpBot;
 
    /**
     * main program 
@@ -81,10 +84,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       stage.setTitle("TFTPClient - IllegalSkillsException");
       stage.setOnCloseRequest(
          new EventHandler<WindowEvent>() {
-            public void handle(WindowEvent evt) { System.exit(0); }
+            public void handle(WindowEvent evt) { System.exit(0); } //window closer event on [X]
          });
       stage.setResizable(false);
-      root = new VBox(8);
+      root = new VBox(1);
       
       // ROW1 - FlowPane
       FlowPane fpRow1 = new FlowPane(8,8);
@@ -114,16 +117,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       fpLog.getChildren().addAll(lblLog, taLog);
       root.getChildren().add(fpLog);
       
-      // BOTTOM - Progress Bar
-      StackPane sPane = new StackPane();
-      FlowPane fpBot = new FlowPane();
-      fpBot.setAlignment(Pos.CENTER);
-      fpBot.getChildren().addAll(pbProgress);
-      sPane.getChildren().addAll(pbBar, pbPercent);
-      root.getChildren().addAll(fpBot, sPane);
-      
       tfDirectory.setText(System.getProperty("user.dir")); //make directory the current folder this file is in
       
+      // Activate the buttons
       btnChooseFolder.setOnAction(this);
       btnUpload.setOnAction(this);
       btnDownload.setOnAction(this);
@@ -137,7 +133,6 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             }
          });
    
-      
       // Setup the screen
       stage.setX((size.width / 2 - (475 / 2)) + 310);  //offset the screen by 310
       stage.setY(size.height / 2 - (340 / 2));
@@ -171,9 +166,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             break;
          case "Upload":
             pbBar.setProgress(0);
-            pbPercent.setText("0");
+            pbPercent.setText("");
                
-               //make a filechooser for choosing file to upload
+            //make a filechooser for choosing file to upload
             FileChooser chooserWindow = new FileChooser(); //make the file chooser appear
             chooserWindow.setInitialDirectory(new File(tfDirectory.getText()));
             chooserWindow.setTitle("Choose the Local File to Upload");
@@ -188,7 +183,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                return;
             }
                
-               //make a textinputdialog for selecting the name for the file
+            //make a textinputdialog for selecting the name for the file
             TextInputDialog input = new TextInputDialog();
             input.setHeaderText("Enter the name to file on the server for saving the upload");
             input.setTitle("Remote Name");
@@ -198,26 +193,39 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                
             fileName = input.getEditor().getText();
                
-               //if the user did not select a file to upload
+            //if the user did not select a file to upload
             if (fileTo == null) {
                log("You did not choose a file to upload... cancelling upload.\n");
                doDisconnect();
                return;
             }
-                  //if the user did put in a file
-            else {
-               try{
+            //if the user did put in a file
+            else {   
+               //create the progress bar GUI
+               sPane = new StackPane();
+               fpBot = new FlowPane();
+               fpBot.setAlignment(Pos.CENTER);
+               fpBot.getChildren().addAll(pbProgress);
+               sPane.getChildren().addAll(pbBar, pbPercent);
+               root.getChildren().addAll(fpBot, sPane);
+               
+               try {
                   dis = new DataInputStream(new FileInputStream(fileTo)); //open the file, clear it's contents
                }
                catch(FileNotFoundException fnfe){
                   log("File Not Found..." + fnfe);
                   return;
                }
-            }
+            } //else
             ct = new ClientThread(label);
-            ct.start();
+            ct.start(); //start the thread
             break;
          case "Download":
+            // Make the progress bars gone after upload happens
+            if (sPane != null && fpBot != null) { 
+               sPane.setVisible(false);
+               fpBot.setVisible(false);
+            }
             // TextInputDialog to get the name of the file
             TextInputDialog input1 = new TextInputDialog();
             input1.setHeaderText("Enter the name of the remote file to download");
@@ -225,18 +233,20 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             input1.setX((width / 2 - (475 / 2)) + 310); //set the textinputdialog ontop of the client
             input1.setY(height / 2 - (300 / 2));
             input1.showAndWait();
-               
+            
+            //set the file names
             fileName = input1.getEditor().getText();
             clientFileName = fileName;
                
-               //make a filechooser for saving
+            //make a filechooser for saving
             FileChooser chooserWindow1 = new FileChooser(); //make the file chooser appear
             chooserWindow1.setInitialDirectory(new File(tfDirectory.getText()));
             chooserWindow1.setTitle("Choose where to save");
             chooserWindow1.getExtensionFilters().addAll(new FileChooser.ExtensionFilter("All Files", "*.*"));
             fileTo = chooserWindow1.showSaveDialog(stage); //make the save dialog appear
             
-            try{
+            try {
+               // if the user does not choose a place to save
                if (fileTo == null) {
                   log("You did not choose a place to save... choosing default directory.\n");
                   dos = new DataOutputStream(new FileOutputStream(fileName, false)); //open the file, clear it's contents
@@ -244,16 +254,21 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                else {
                   dos = new DataOutputStream(new FileOutputStream(fileTo, false)); //open the file, clear it's contents
                }
-            }catch(FileNotFoundException fnfe){
+            } //try
+            catch(FileNotFoundException fnfe) {
                log("File Not Found..." + fnfe);
             }
             ct = new ClientThread(label);
-            ct.start();
+            ct.start(); //start the thread
             break;
-      }
-   }   
+      } //switch
+   } //handle(ActionEvent ae)
 
-   
+  /** 
+   * log(String message)
+   * @param gets the message to be appended to the text area
+   * utility method "log" to log a message in a thread safe manner
+   */
    private void log(String message) {
       Platform.runLater(
          new Runnable() {
@@ -263,14 +278,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          });
    } // of log
    
-   /** 
+  /** 
    * doConnect()
    * 
    * Connects to server using TFTP_PORT
    */
    public void doConnect() {
       String ip = "";
-            //if the user does not put a IP in, default to localhost
+      //if the user does not put a IP in, default to localhost
       if(tfServerIP.getText().equals("")) {
          ip = "localhost";
       }
@@ -279,7 +294,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       }
             
       try {
-         serverIP = InetAddress.getByName(ip);
+         serverIP = InetAddress.getByName(ip); //set the ip
                
          socket = new DatagramSocket(); //create a socket
          socket.setSoTimeout(1000);     //set a timeout
@@ -291,7 +306,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                
    } //doConnect()
    
-   /** 
+  /** 
    * doDisconnect()
    * 
    * Disconnects from server
@@ -302,66 +317,78 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          socket.close();
          log("Disconnecting from the server...\n");
       }
-      catch(Exception e){}
+      catch(Exception e) {
+         log("ERROR: Exception has occurred..." + e);
+      }
             
       socket = null; //set the socket to null
-      
    }
 
    
-    /** 
+  /** 
    * doChooseFolder()
    * uses DirectoryChooser
    * updates tfSentence with the new directory that the user chose
    */
    public void doChooseFolder() {
-   
-            // Directory Chooser setup
+      // Hide the progressbar components if they exist
+      if (sPane != null && fpBot != null) { 
+         sPane.setVisible(false);
+         fpBot.setVisible(false);
+      }
+      // Directory Chooser setup
       DirectoryChooser directoryChooser = new DirectoryChooser();
       directoryChooser.setInitialDirectory(new File(tfDirectory.getText())); //get current working directory
       File selectedDirectory = directoryChooser.showDialog(stage);                    //show that directory
             
       if(selectedDirectory == null) {
-               //No Directory selected
+         //No Directory selected
          log("No directory selected!\n");
       }
-      else{
+      else {
          tfDirectory.setText(selectedDirectory.getAbsolutePath()); // sets the textfield to the current directory
          log("Directory changed to " + selectedDirectory.getAbsolutePath() + "\n");
       }
-            
-              
+                   
    } //doChooseFolder()
    
-      
-   
-         
-   class ClientThread extends Thread{
-      
+  /** 
+   * class ClientThread
+   * extends Thread
+   * contains the run method for the threads + doUpload(), doDownload(), and doChooseFolder()
+   */
+   class ClientThread extends Thread {
+      // Attributes
       private String cmd;
       
-      public ClientThread(String cmd){
+     /** 
+      * parameterized constructor for ClientThread 
+      * @param cmd string command for the run()
+      */
+      public ClientThread(String cmd) {
          this.cmd = cmd;
       }
       
-      public void run(){
-         if(cmd.equals("Upload")){
+      public void run() {
+         if(cmd.equals("Upload")) {
             doUpload();
-         }else if(cmd.equals("Download")){
+         }
+         else if(cmd.equals("Download")) {
             doDownload();
-         }else if(cmd.equals("Choose Folder")){
+         }
+         else if(cmd.equals("Choose Folder")) {
             doChooseFolder();
          }
-      }
+      } //run()
    
-   /** 
-   * doUpload()
-   * uses FileChooser
-   * uploads a file to the server using the TFTP protocol
-   */
+      /** 
+      * doUpload()
+      * uses FileChooser
+      * uploads a file to the server using the TFTP protocol
+      */
       public void doUpload() {
       
-      // ATTRIBUTES:
+         // ATTRIBUTES:
          int blockNo = 0;
          byte[] data = new byte[512];
          int port = -1;
@@ -370,15 +397,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          totalSize = 0; //for more than 1 uploads
             
          try {
-               // Connect to server
-            doConnect();
-         //dis = new DataInputStream(new FileInputStream(fileTo)); //open the file, clear it's contents       
+            // Connect to server
+            doConnect();    
                
-               //InetAddress _toAddress, int _port, String _fileName, String _mode
+            //InetAddress _toAddress, int _port, String _fileName, String _mode
             WRQPacket wrqPkt = new WRQPacket(serverIP, TFTP_PORT, fileName, "octet"); //make a WRQPacket
             socket.send(wrqPkt.build()); //PACKET 1                                     send it out
                
-               //LOOP START HERE
+            //LOOP START HERE
             while(continueLoop) {
                byte[] holder = new byte[MAX_PACKET];                             //create a holder of byte array which the size is MAX_PACKET
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); //make the incoming datagram packet
@@ -394,10 +420,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      size++;
                      totalSize++;                           //increment every byte no matter what block
                         
-                     final int temp = totalSize; //final for platform.runlater
+                     final int temp = totalSize;            //final for platform.runlater
                      double value = ((int)totalSize / (double)fileTo.length()) * 100;
                         
-                        //thread safe platform.runlater
+                     //thread safe platform.runlater
                      Platform.runLater(
                               new Runnable() { 
                                  public void run() {
@@ -411,7 +437,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                      
                   DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, size); //make the second packet
                      
-                     //Sends the data packet and waits to receive the ACK Packet from the client
+                  //Sends the data packet and waits to receive the ACK Packet from the client
                   log("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                            "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
                            + "  [" + size + "]" + data[size] + "\n");
@@ -433,14 +459,14 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             return;
          } //catch
          catch(EOFException eofe) {
-               //ON END OF FILE EXCEPTION...
+            //ON END OF FILE EXCEPTION...
             try {
                blockNo++; //increment the block number
                   
                DATAPacket secondPkt = new DATAPacket(serverIP, port, blockNo, data, size); //create the datapacket
                dis.close();                                                                //close the stream
                   
-                  //Sends the data packet and waits to receive the ACK Packet from the client
+               //Sends the data packet and waits to receive the ACK Packet from the client
                if (size >= 8) {
                   log("Sending DATAPacket: blockNo: " + blockNo + " - [0]" + data[0] + "  [1]" + data[1] + "  [2]" + data[2] + "  [3]" + data[3] + 
                            "  ...[" + (size -3) + "]" +  data[size -3 ] + "  [" + (size -2) + "]" + data[size -2 ] + "  [" + (size -1)  + "]" + data[size -1 ]
@@ -455,34 +481,34 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   
                socket.send(secondPkt.build()); //send the second packet
                   
-                  //receiving the ACK Packet from the client 
+               //receiving the ACK Packet from the client 
                byte[] holder = new byte[MAX_PACKET];                             // create a holder of byte array with size of MAX_PACKET
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // create the incoming datagram packet
                socket.receive(incoming);                                         // receive the incoming packet
                   
-               readACKPacket(incoming, blockNo); //read the ACKPacket
+               readACKPacket(incoming, blockNo);                                 //read the ACKPacket
                if(size < 511) {
                   continueLoop = false; //if the size is less than 511, end the loop
                }
             } //try
-            catch(FileNotFoundException fnfe){
+            catch(FileNotFoundException fnfe) {
                try {
                   log("FileNotFoundException occurred in doRRQ()... Sending error packet! - " + fnfe + "\n");
                   ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 1, fnfe.toString()); // build the error packet
-                  socket.send(errorPkt.build());                                             // send the error packet
+                  socket.send(errorPkt.build());                                              // send the error packet
                   log("ERROR sent to Server...\n");
-                  return;                                                      // exit the loop
+                  return;                                                                     // exit the loop
                }
                catch(IOException ioe1) {
                   log("IOException 0 in doRRQ(): " + ioe1 + "\n");
                }
-            }
+            } //catch
             catch(IOException ioe) {
                try {
-                  log("IOException..." + ioe + "\n");                           // IOException has occurred...send error packet
+                  log("IOException..." + ioe + "\n");                                        // IOException has occurred...send error packet
                   ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, ioe.toString()); // make the error packet
                   socket.send(errorPkt.build());                                             // send the error packet out
-                  log("ERROR sent to client...\n");                             // log it
+                  log("ERROR sent to client...\n");                                          // log it
                   continueLoop = false;                                                      // exit the loop
                }
                catch(IOException ioe1) {
@@ -491,10 +517,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             } //catch 2
             catch(Exception e) {
                try {
-                  log("Exception occurred..." + e + "\n");                      // Exception has occurred...send error packet
+                  log("Exception occurred..." + e + "\n");                                   // Exception has occurred...send error packet
                   ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, e.toString());   // make the error packet
                   socket.send(errorPkt.build());                                             // send the error packet out
-                  log("ERROR sent to client...\n");                             // log it
+                  log("ERROR sent to client...\n");                                          // log it
                   continueLoop = false;                                                      // exit the loop
                }
                catch(IOException ioe) {
@@ -509,9 +535,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             try {
                log("FileNotFoundException occurred in doRRQ() (2)... Sending error packet! - " + fnfe + "\n");
                ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 1, fnfe.toString()); // build the error packet
-               socket.send(errorPkt.build());                                             // send the error packet
+               socket.send(errorPkt.build());                                              // send the error packet
                log("ERROR sent to Server...\n");
-               return;                                                      // exit the loop
+               return;                                                                     // exit the loop
             }
             catch(IOException ioe1) {
                log("IOException in doRRQ() (2): " + ioe1 + "\n");
@@ -519,10 +545,10 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          }
          catch(IOException ioe) {
             try {
-               log("IOException..." + ioe + "\n");                           // IOException has occurred...send error packet
+               log("IOException..." + ioe + "\n");                                        // IOException has occurred...send error packet
                ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 0, ioe.toString()); // make the error packet
                socket.send(errorPkt.build());                                             // send the error packet out
-               log("ERROR sent to client...\n");                             // log it
+               log("ERROR sent to client...\n");                                          // log it
                continueLoop = false;                                                      // exit the loop
             }
             catch(IOException ioe1) {
@@ -534,7 +560,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       
       } //doUpload()
    
-   /** 
+     /** 
       * readACKPacket()
       * For reading the ACKPackets
       * @param pkt of DatagramPacket
@@ -542,12 +568,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       */
       public boolean readACKPacket(DatagramPacket pkt, int blockNo) {
          try {
-         //create the streams: Byte Array Input Stream & Data Input Stream
+            //create the streams: Byte Array Input Stream & Data Input Stream
             ByteArrayInputStream bais = new ByteArrayInputStream(pkt.getData(), pkt.getOffset(), pkt.getLength());
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort(); //read in the opcode
          
-         //if the opcode is an ACKPacket..
+            //if the opcode is an ACKPacket..
             if (opcode == ACK) {
                ACKPacket ackPkt = new ACKPacket(); //create the ACKPacket
                ackPkt.dissect(pkt);                //dissect it
@@ -557,9 +583,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   return true;
                }
                else {
-                  log("Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".\n");                      // Exception has occurred...send error packet
-                  ERRORPacket errorPkt = new ERRORPacket(serverIP, pkt.getPort(), 0, "Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".");   // make the error packet
-                  socket.send(errorPkt.build());                                             // send the error packet out
+                  log("Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".\n");  // Exception has occurred...send error packet
+                  ERRORPacket errorPkt = new ERRORPacket(serverIP, pkt.getPort(), 0, "Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\"."); // make the error packet
+                  socket.send(errorPkt.build()); // send the error packet out
                   log("ERROR sent to client...\n");
                } //else
                
@@ -570,16 +596,16 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                ERRORPacket errorPkt = new ERRORPacket(); //create the ERRORPacket
                errorPkt.dissect(pkt);                    //dissect it
             
-            //log the error
+               //log the error
                log("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
                doDisconnect(); //disconnect from the server
                return false;
             } //else if opcode == ERROR
             
             else{
-               log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
-               ERRORPacket errorPkt = new ERRORPacket(serverIP, pkt.getPort(), 4, "Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode);   // make the error packet
-               socket.send(errorPkt.build());                                             // send the error packet out
+               log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n"); // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(serverIP, pkt.getPort(), 4, "Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode); // make the error packet
+               socket.send(errorPkt.build()); // send the error packet out
                log("ERROR sent to client...\n");
             }
          
@@ -593,35 +619,35 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       } //readACKPacket()
    
    
-   /** 
-   * doDownload()
-   * uses FileChooser
-   * downloads a file from the server using the TFTP protocol
-   */
+     /** 
+      * doDownload()
+      * uses FileChooser
+      * downloads a file from the server using the TFTP protocol
+      */
       public void doDownload() { // create rrq packet to send
       
          String selectedFile = ""; //for referencing the name of the file after the catches.
          int port = -1;
             
          try {
-               // connect to server stuff here (aka doConnect() method)
+            // connect to server stuff here (aka doConnect() method)
             doConnect();
                
                
                
-               //InetAddress _toAddress, int _port, String _fileName, String _mode
+            //InetAddress _toAddress, int _port, String _fileName, String _mode
             RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
             socket.send(rrqPkt.build()); //PACKET 1
                
-               // LOOP START HERE
+            // LOOP START HERE
             boolean continueLoop = true;
             while(continueLoop) {
-                  //receiving the DATA Packet from the Server
+               //receiving the DATA Packet from the Server
                byte[] holder = new byte[MAX_PACKET];
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET);
                socket.receive(incoming); //PACKET 2
                   
-                  // Figure out if the incoming datagrampacket is RRQ or WRQ packet
+               // Figure out if the incoming datagrampacket is RRQ or WRQ packet
                ByteArrayInputStream bais = new ByteArrayInputStream(incoming.getData(), incoming.getOffset(), incoming.getLength());
                DataInputStream dis = new DataInputStream(bais);
                int opcode = dis.readShort(); //read in the opcode
@@ -639,18 +665,18 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   DATAPacket dataPkt = new DATAPacket(); //create the datapacket
                   dataPkt.dissect(incoming);             //dissect it
                      
-                     // ATTRIBUTES
+                  // ATTRIBUTES
                   byte[] data = dataPkt.getData();
                   int blockNo = dataPkt.getBlockNo();
                   port = dataPkt.getPort();
                   int dataLen = dataPkt.getDataLen();
                   log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + (dataLen + 1) + "\n");
                      
-                     // change socket to new port
-                     // socket.bind(new InetSocketAddress(#)); this is where we change the port
+                  // change socket to new port
+                  // socket.bind(new InetSocketAddress(#)); this is where we change the port
                      
                   try {
-                        //write until end of file exception
+                     //write until end of file exception
                      for (int i = 0; i < data.length; i++) { //for all the data
                         dos.writeByte(data[i]);  //write the data
                      }
@@ -665,7 +691,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                         
                   } //try
                   catch(EOFException eofe) {
-                        // On END OF FILE EXCEPTION...
+                     // On END OF FILE EXCEPTION...
                      ACKPacket ackPkt = new ACKPacket(serverIP, port, blockNo);  //create the ACKPacket
                      socket.send(ackPkt.build()); // PACKET 3                      send it out
                         
@@ -678,9 +704,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                } //else if opcode = DATA
                      
                else{
-                  log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
-                  ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 4, "Illegal Opcode! Looking for OPCODE-3 or OPCODE-5. Recieved: " + opcode);   // make the error packet
-                  socket.send(errorPkt.build());                                             // send the error packet out
+                  log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n"); // Exception has occurred...send error packet
+                  ERRORPacket errorPkt = new ERRORPacket(serverIP, port, 4, "Illegal Opcode! Looking for OPCODE-3 or OPCODE-5. Recieved: " + opcode); // make the error packet
+                  socket.send(errorPkt.build()); // send the error packet out
                   log("ERROR sent to client...\n");
                }
                   
@@ -696,7 +722,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             log("IOException occurred in doDownload()..." + ioe + "\n");
             return;
          }
-            
+         //log that the download finished!
          log(selectedFile + " has finished downloading! \n");
       
                

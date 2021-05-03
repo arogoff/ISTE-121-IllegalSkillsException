@@ -151,6 +151,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
    
    //Stop method
    public void doStop() {
+      //if the user exits without turning on the server
       if (serverThread == null) {
          System.exit(0);
       }
@@ -322,18 +323,19 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
             File downFile = new File(dir.getText() + File.separator + fileName); // get the file in it's directory
             dis = new DataInputStream(new FileInputStream(downFile));            // open the file
          }
-         catch(FileNotFoundException fnfe){
-            try{
+         catch(FileNotFoundException fnfe) {
+            try {
                log("FileNotFoundException occurred in doRRQ()... Sending error packet! - " + fnfe + "\n");
                ERRORPacket errorPkt = new ERRORPacket(toAddress, port, 1, fnfe.toString()); // build the error packet
                cSocket.send(errorPkt.build());                                             // send the error packet
                log("ERROR sent to client...\n");
-            }catch(IOException ioe){
+            }
+            catch(IOException ioe) {
                log("IOException occurred in doRRQ()... " + ioe + "\n");
             }
             
             return;
-         }
+         } //catch fnfe
          
          boolean continueRRQ = true; // for loop control
          while(continueRRQ) {
@@ -362,10 +364,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // make the incoming datagram packet
                cSocket.receive(incoming);                                        // receive the ACK Packet
                log("Received ACK Packet!" + "\n");                               // log the ack packet
-               if(!readACKPacket(incoming, blockNo-1)){
+               if(!readACKPacket(incoming, blockNo-1)) {
                   continueRRQ = false;
                   break;
-               }                              // read the ACKPacket
+               } 
                
                if(size < 511) {
                   continueRRQ = false; //if the data is less then 511, don't go through the loop anymore
@@ -398,10 +400,10 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   DatagramPacket incoming = new DatagramPacket(holder, MAX_PACKET); // make the incoming datagram packet
                   cSocket.receive(incoming);                                        // receive the incoming packet
                   log("Received ACK Packet!" + "\n");                               // log the ack packet
-                  if(!readACKPacket(incoming, blockNo)){
+                  if(!readACKPacket(incoming, blockNo)) {
                      continueRRQ = false;
                      break;
-                  }                                 // read the ACKPacket
+                  }
                   if(size < 511) {
                      continueRRQ = false; //if the data is less then 511, don't go through the loop anymore
                   }
@@ -530,7 +532,7 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   log("DATAPacket: blockNo: " + blockNo + ", port: " + port + ", Length of Data: " + (dataLen + 1) + "\n"); //log the DATAPacket
                   
                   try {
-                  //write until end of file exception
+                     //write until end of file exception
                      for (int i = 0; i < data.length; i++) { //for all the data
                         dos.writeByte(data[i]);  //write the data
                      }
@@ -553,7 +555,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                
                
             } //try
-            catch(IOException ioe){}
+            catch(IOException ioe){
+               log("IOException occurred..." + ioe);
+            }
             
          } //while continueWRQ
          
@@ -568,12 +572,12 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       */
       public boolean readACKPacket(DatagramPacket pkt, int blockNo) {
          try {
-         //create the streams: Byte Array Input Stream & Data Input Stream
+            //create the streams: Byte Array Input Stream & Data Input Stream
             ByteArrayInputStream bais = new ByteArrayInputStream(pkt.getData(), pkt.getOffset(), pkt.getLength());
             DataInputStream dis = new DataInputStream(bais);
             int opcode = dis.readShort(); //read in the opcode
          
-         //if the opcode is an ACKPacket..
+            //if the opcode is an ACKPacket..
             if (opcode == ACK) {
                ACKPacket ackPkt = new ACKPacket(); //create the ACKPacket
                ackPkt.dissect(pkt);                //dissect it
@@ -583,9 +587,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                   return true;
                }
                else {
-                  log("Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".\n");                      // Exception has occurred...send error packet
-                  ERRORPacket errorPkt = new ERRORPacket(toAddress, pkt.getPort(), 0, "Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".");   // make the error packet
-                  cSocket.send(errorPkt.build());                                             // send the error packet out
+                  log("Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\".\n"); // Exception has occurred...send error packet
+                  ERRORPacket errorPkt = new ERRORPacket(toAddress, pkt.getPort(), 0, "Blk#'s don't match! Looking for: \"" + blockNo + "\". Recieved: \"" + ackPkt.getBlockNo() + "\"."); // make the error packet
+                  cSocket.send(errorPkt.build()); // send the error packet out
                   log("ERROR sent to client...\n");
                } //else
                
@@ -596,15 +600,15 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
                ERRORPacket errorPkt = new ERRORPacket(); //create the ERRORPacket
                errorPkt.dissect(pkt);                    //dissect it
             
-            //log the error
+               //log the error
                log("Error recieved from server:\n     [ERRORNUM:" + errorPkt.getErrorNo() + "] ... " + errorPkt.getErrorMsg() + "\n");
                return false;
             } //else if opcode == ERROR
             
             else{
-               log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n");                      // Exception has occurred...send error packet
-               ERRORPacket errorPkt = new ERRORPacket(toAddress, pkt.getPort(), 4, "Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode);   // make the error packet
-               cSocket.send(errorPkt.build());                                             // send the error packet out
+               log("Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode + "\n"); // Exception has occurred...send error packet
+               ERRORPacket errorPkt = new ERRORPacket(toAddress, pkt.getPort(), 4, "Illegal Opcode! Looking for OPCODE-4 or OPCODE-5. Recieved: " + opcode); // make the error packet
+               cSocket.send(errorPkt.build()); // send the error packet out
                log("ERROR sent to client...\n");
             }
          
@@ -619,8 +623,12 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       } //readACKPacket()
       
    } // End of inner class
-
-   // utility method "log" to log a message in a thread safe manner
+   
+   /** 
+   * log(String message)
+   * @param gets the message to be appended to the text area
+   * utility method "log" to log a message in a thread safe manner
+   */
    private void log(String message) {
       Platform.runLater(
          new Runnable() {
