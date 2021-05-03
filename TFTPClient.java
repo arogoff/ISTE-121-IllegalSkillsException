@@ -450,7 +450,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                   Long allTimeForUploading = (elapsedTime * fileTo.length() / totalSize);
                   Long remainingTime = allTimeForUploading - elapsedTime;
                   
-                  System.out.println("Estimated time until finished: " + remainingTime);
+                  double remainingTimeInSeconds = (double) remainingTime / 1_000_000_000;
+                  int seconds = (int)remainingTimeInSeconds % 60;
+                  int hour = seconds / 60;
+                  int minutes = hour % 60;
+                  hour = hour / 60;
+                  System.out.println("Time Remaining: " + hour + "hr(s) : " + String.format("%02d", minutes) + "min(s) : " + String.format("%02d", seconds) + "sec");
                      
                   if(size < 511) {
                      continueLoop = false; //if the size is less than 511, end the loop
