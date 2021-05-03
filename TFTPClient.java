@@ -625,15 +625,11 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
       * downloads a file from the server using the TFTP protocol
       */
       public void doDownload() { // create rrq packet to send
-      
-         String selectedFile = ""; //for referencing the name of the file after the catches.
          int port = -1;
             
          try {
             // connect to server stuff here (aka doConnect() method)
             doConnect();
-               
-               
                
             //InetAddress _toAddress, int _port, String _fileName, String _mode
             RRQPacket rrqPkt = new RRQPacket(serverIP, TFTP_PORT, fileName, "octet");
@@ -723,7 +719,7 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
             return;
          }
          //log that the download finished!
-         log(selectedFile + " has finished downloading! \n");
+         log(fileTo.getName() + " has finished downloading! \n");
       
                
       } //doDownload()
