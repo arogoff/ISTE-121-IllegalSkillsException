@@ -399,7 +399,9 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
          try {
             // Connect to server
             doConnect();    
-               
+            
+            Long startTime = System.nanoTime();
+            
             //InetAddress _toAddress, int _port, String _fileName, String _mode
             WRQPacket wrqPkt = new WRQPacket(serverIP, TFTP_PORT, fileName, "octet"); //make a WRQPacket
             socket.send(wrqPkt.build()); //PACKET 1                                     send it out
@@ -443,6 +445,12 @@ public class TFTPClient extends Application implements EventHandler<ActionEvent>
                            + "  [" + size + "]" + data[size] + "\n");
                      
                   socket.send(secondPkt.build()); //send the second packet
+                  
+                  Long elapsedTime = System.nanoTime() - startTime;
+                  Long allTimeForUploading = (elapsedTime * fileTo.length() / totalSize);
+                  Long remainingTime = allTimeForUploading - elapsedTime;
+                  
+                  System.out.println("Estimated time until finished: " + remainingTime);
                      
                   if(size < 511) {
                      continueLoop = false; //if the size is less than 511, end the loop
