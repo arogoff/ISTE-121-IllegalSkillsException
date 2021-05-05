@@ -147,6 +147,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       serverThread.start();
       log("Server Started!\n");
       btnStartStop.setText("Stop");
+      btnChooseFolder.setDisable(true);
+      dir.setEditable(false);
+      dir.setDisable(true);
    }
    
    //Stop method
@@ -158,6 +161,9 @@ public class TFTPServer extends Application implements EventHandler<ActionEvent>
       serverThread.stopServer();
       log("Server Stopped!\n");
       btnStartStop.setText("Start");
+      btnChooseFolder.setDisable(false);
+      dir.setEditable(true);
+      dir.setDisable(false);
    }
    
    /** 
