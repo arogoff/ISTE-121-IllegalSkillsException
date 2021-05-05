@@ -16,7 +16,7 @@ import java.net.*;
 import java.io.*;
 
 /**
- * TFTPClient - Sends 
+ * TFTPClient - Sends packets to/from the server.
  * No Connect/Disconnect button - connectionless.
  * @author  Garrett Maury, Josh R, Alex R (RIP JOSH)
  * @version 4/9/2021
